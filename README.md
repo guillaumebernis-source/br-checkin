@@ -8,49 +8,32 @@ Application de pointage pour la course caritative d'Halloween. Un bénévole sca
 - **Backend** : un Google Apps Script *lié au Sheet* ([apps-script/Code.gs](apps-script/Code.gs)), déployé comme "Web App". Il tourne avec ton compte Google, a un accès natif au Sheet (pas de clé API à gérer) et gère les écritures concurrentes avec un verrou.
 - **Frontend** : une page web mobile statique ([webapp/](webapp)) qui scanne les QR codes via la caméra et appelle le Web App. Hébergée gratuitement sur GitHub Pages (ou Netlify/Vercel).
 - **Sécurité** :
-  - Chaque dossard a un **code secret aléatoire** (colonne `Qrcode`, différente de la colonne `Url` qui reste la page publique/don du coureur, devinable). C'est ce code secret qui est imprimé en QR sur le dossard — impossible à deviner ou reconstituer à partir du nom.
-  - Un **code bénévole** (PIN) protège l'accès à l'API de pointage : sans lui, personne ne peut marquer un dossard "arrivé" même en connaissant l'URL de l'app.
+  - Les QR codes déjà imprimés sur les dossards encodent la colonne `Url` — le pointage se fait donc directement sur cette colonne, sans étape de préparation supplémentaire.
+  - Un **code bénévole** (PIN) protège l'accès à l'API de pointage : sans lui, personne ne peut marquer un dossard "arrivé" même en connaissant l'URL de l'app. C'est la protection principale, puisque l'`Url` elle-même suit un motif prévisible (nom+prénom) et n'est donc pas un secret.
   - Tout transite en HTTPS (Apps Script + GitHub Pages sont HTTPS par défaut).
-  - Le double-scan est géré côté serveur : si le dossard est déjà marqué "arrivé", l'app affiche un message dédié sans écraser de donnée.
+  - Le double-scan est géré côté serveur : si le dossard est déjà marqué "arrivé" (`Arrivé` = `oui`), l'app affiche un message dédié sans écraser de donnée.
 
-## Étape 1 — Préparer le Google Sheet
-
-1. Ouvre le Sheet, insère une colonne entre `Url` et `Arrivé`, nomme-la **`Qrcode`**.
-   L'ordre final doit être : `Numéro | Nom | Prénom | Caractéristiques | Url | Qrcode | Arrivé`.
-2. Vérifie que la colonne `Arrivé` est bien au format case à cocher (Format > Validation des données > Case à cocher), pour avoir des vraies valeurs booléennes.
-
-## Étape 2 — Installer le script (backend)
+## Étape 1 — Installer le script (backend)
 
 1. Dans le Sheet : **Extensions > Apps Script**.
 2. Supprime le contenu par défaut de `Code.gs` et colle le contenu de [apps-script/Code.gs](apps-script/Code.gs).
 3. Choisis un **code bénévole** (ex. `HALLOWEEN26`, au moins 6 caractères pour limiter le brute-force). Dans l'éditeur Apps Script : icône ⚙️ **Paramètres du projet > Propriétés du script > Ajouter une propriété** :
    - Propriété : `STAFF_PIN`
    - Valeur : ton code choisi
-4. Dans le menu déroulant des fonctions (en haut, à côté de "Déboguer"), sélectionne `genererCodesManquants` puis clique sur **Exécuter**. Autorise les permissions demandées. Ça génère un code secret unique (8 caractères) pour chaque ligne du Sheet dans la colonne `Qrcode`.
-5. **Déployer > Nouveau déploiement** :
+4. **Déployer > Nouveau déploiement** :
    - Type : **Application Web**
    - Exécuter en tant que : **Moi**
    - Qui a accès : **Tout le monde**
    - Clique sur **Déployer**, autorise l'accès.
    - Copie l'**URL du Web App** (`https://script.google.com/macros/s/AKfycb.../exec`).
 
-> Pour re-tester le jour J sans polluer les vraies données : la fonction `reinitialiserArrivees` (à exécuter manuellement dans l'éditeur) remet toute la colonne `Arrivé` à faux.
+> Pour re-tester le jour J sans polluer les vraies données : la fonction `reinitialiserArrivees` (à exécuter manuellement dans l'éditeur, jamais depuis l'app) vide toute la colonne `Arrivé`.
 
-## Étape 3 — Configurer le frontend
+## Étape 2 — Configurer le frontend
 
-Ouvre [webapp/config.js](webapp/config.js) et remplace `APPS_SCRIPT_URL` par l'URL copiée à l'étape 2.5.
+Ouvre [webapp/config.js](webapp/config.js) et remplace `APPS_SCRIPT_URL` par l'URL copiée à l'étape 1.4.
 
-## Étape 4 — Générer les QR codes à imprimer
-
-Chaque dossard doit porter un QR code encodant la valeur de sa colonne `Qrcode` (pas l'`Url`). Solution la plus rapide, directement dans le Sheet : dans une colonne temporaire, mets la formule (en supposant le code en `F2`) :
-
-```
-=IMAGE("https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" & F2)
-```
-
-Étire vers le bas, puis imprime/exporte cette colonne pour la fabrication des dossards. Tu peux ensuite supprimer la colonne temporaire (elle n'est pas utilisée par l'app).
-
-## Étape 5 — Héberger et publier le frontend (GitHub Pages)
+## Étape 3 — Héberger et publier le frontend (GitHub Pages)
 
 ✅ Déjà fait : le projet est poussé sur [github.com/guillaumebernis-source/Blood-runners-finish-line-check](https://github.com/guillaumebernis-source/Blood-runners-finish-line-check) et GitHub Pages est activé (branche `main`, racine).
 
@@ -60,7 +43,7 @@ L'app est disponible sur :
 https://guillaumebernis-source.github.io/Blood-runners-finish-line-check/webapp/
 ```
 
-Pour publier une mise à jour (ex. après avoir renseigné `config.js` à l'étape 3) :
+Pour publier une mise à jour (ex. après avoir renseigné `config.js` à l'étape 2) :
 
 ```bash
 git add -A
@@ -72,7 +55,7 @@ Pages redéploie automatiquement en 1-2 minutes après chaque `push`.
 
 > Alternative sans terminal : dépose les 4 fichiers de `webapp/` par glisser-déposer sur [Netlify Drop](https://app.netlify.com/drop) — tu obtiens une URL HTTPS instantanément.
 
-## Étape 6 — Le jour J
+## Étape 4 — Le jour J
 
 1. Chaque bénévole ouvre l'URL de l'app sur son téléphone, saisit le **code bénévole** une seule fois (mémorisé ensuite sur son téléphone).
 2. Il scanne les QR codes des dossards au fur et à mesure des arrivées.
