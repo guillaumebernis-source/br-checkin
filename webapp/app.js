@@ -167,6 +167,10 @@ function retryLast() {
 
 function closeModal() {
   modal.classList.add('hidden');
+  modalContent.className = 'modal-content';
+  modalMessage.textContent = '';
+  modalBtn.hidden = true;
+  modalBtn.onclick = null;
 }
 
 function closeModalAndResume() {

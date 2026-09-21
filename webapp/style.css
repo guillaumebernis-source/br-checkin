@@ -95,6 +95,15 @@ button.ghost {
   border: 2px solid #2c2e38;
 }
 
+/* Sur certains mobiles (Android/Chrome notamment), le <video> de la caméra
+   est composité par le matériel et ignore le z-index CSS, s'affichant
+   toujours au-dessus du reste de la page. Forcer une opacité < 1 bascule
+   le navigateur sur un compositing logiciel normal, où le z-index de la
+   pop-in est respecté. */
+#reader video {
+  opacity: 0.9999;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -102,7 +111,7 @@ button.ghost {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 999999;
   padding: 20px;
 }
 
