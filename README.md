@@ -52,21 +52,25 @@ Chaque dossard doit porter un QR code encodant la valeur de sa colonne `Qrcode` 
 
 ## Étape 5 — Héberger et publier le frontend (GitHub Pages)
 
-Depuis le dossier `webapp/` :
+✅ Déjà fait : le projet est poussé sur [github.com/guillaumebernis-source/Blood-runners-finish-line-check](https://github.com/guillaumebernis-source/Blood-runners-finish-line-check) et GitHub Pages est activé (branche `main`, racine).
 
-```bash
-cd "webapp"
-git init
-git add index.html app.js config.js style.css
-git commit -m "Blood Runners check-in app"
-git branch -M main
-git remote add origin https://github.com/<ton-compte>/blood-runners-checkin.git
-git push -u origin main
+L'app est disponible sur :
+
+```
+https://guillaumebernis-source.github.io/Blood-runners-finish-line-check/webapp/
 ```
 
-Puis sur GitHub : **Settings > Pages > Deploy from branch > main / (root)**. L'app sera disponible sur `https://<ton-compte>.github.io/blood-runners-checkin/`.
+Pour publier une mise à jour (ex. après avoir renseigné `config.js` à l'étape 3) :
 
-> Alternative sans terminal : dépose les 4 fichiers de `webapp/` par glisser-déposer sur [Netlify Drop](https://app.netlify.com/drop) — tu obtiens une URL HTTPS instantanément, sans compte GitHub.
+```bash
+git add -A
+git commit -m "Mise à jour config"
+git push
+```
+
+Pages redéploie automatiquement en 1-2 minutes après chaque `push`.
+
+> Alternative sans terminal : dépose les 4 fichiers de `webapp/` par glisser-déposer sur [Netlify Drop](https://app.netlify.com/drop) — tu obtiens une URL HTTPS instantanément.
 
 ## Étape 6 — Le jour J
 
