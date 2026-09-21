@@ -21,9 +21,16 @@
 
   <section id="scan-screen" hidden>
     <div id="reader"></div>
-    <div id="result-banner" class="hidden"></div>
     <p id="stats">Dossards enregistrés cette session : <span id="count">0</span></p>
   </section>
+
+  <div id="result-modal" class="modal-overlay hidden">
+    <div id="result-modal-content" class="modal-content loading">
+      <div id="modal-spinner" class="spinner"></div>
+      <p id="modal-message">Identification en cours…</p>
+      <button id="modal-btn" hidden></button>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="config.js"></script>

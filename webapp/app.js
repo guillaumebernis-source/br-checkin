@@ -3,13 +3,18 @@ const SESSION_DURATION_MS = 24 * 60 * 60 * 1000; // 24h
 let sessionCount = 0;
 let scanner = null;
 let processing = false;
+let lastCode = null;
 
 const pinScreen = document.getElementById('pin-screen');
 const scanScreen = document.getElementById('scan-screen');
 const pinInput = document.getElementById('pin-input');
-const banner = document.getElementById('result-banner');
 const countEl = document.getElementById('count');
 const logoutBtn = document.getElementById('logout-btn');
+
+const modal = document.getElementById('result-modal');
+const modalContent = document.getElementById('result-modal-content');
+const modalMessage = document.getElementById('modal-message');
+const modalBtn = document.getElementById('modal-btn');
 
 function getStoredPin() {
   const raw = localStorage.getItem(PIN_STORAGE_KEY);
@@ -48,7 +53,7 @@ function startScanner() {
       () => {}
     )
     .catch(err => {
-      showBanner('error', "Impossible d'accéder à la caméra : " + err);
+      showModalError("Impossible d'accéder à la caméra : " + err, { hideRetry: true });
     });
 }
 
@@ -65,10 +70,16 @@ function stopScanner() {
 async function onScanSuccess(decodedText) {
   if (processing) return;
   processing = true;
+  lastCode = decodedText;
+
+  if (scanner) {
+    try {
+      scanner.pause(true);
+    } catch (e) {}
+  }
+
+  showModalLoading();
   await checkIn(decodedText);
-  setTimeout(() => {
-    processing = false;
-  }, 1500);
 }
 
 async function checkIn(code, allowRetry) {
@@ -84,7 +95,7 @@ async function checkIn(code, allowRetry) {
     handleResult(data);
   } catch (err) {
     if (allowRetry) return checkIn(code, false);
-    showBanner('error', 'Erreur réseau, réessayez le scan.');
+    showModalError('Erreur réseau. Vérifie la connexion et réessaie.');
   }
 }
 
@@ -93,35 +104,79 @@ function handleResult(data) {
     case 'success':
       sessionCount++;
       countEl.textContent = sessionCount;
-      showBanner(
+      showModalDone(
         'success',
         '✅ Dossard #' + data.runner.numero + ' — ' + data.runner.prenom + ' ' + data.runner.nom + ' enregistré(e) arrivé(e).'
       );
       break;
     case 'already':
-      showBanner(
+      showModalDone(
         'warning',
-        '⚠️ Cette personne est déjà enregistrée comme arrivée (Dossard #' +
+        '⚠️ Déjà enregistrée comme arrivée (Dossard #' +
           data.runner.numero + ' — ' + data.runner.prenom + ' ' + data.runner.nom + ').'
       );
       break;
     case 'not_found':
-      showBanner('error', '❌ Dossard inconnu. Réessayez le scan.');
+      showModalError('❌ Dossard inconnu.');
       break;
     case 'unauthorized':
-      showBanner('error', '🔒 Code bénévole invalide.');
+      closeModal();
       logout();
       break;
     default:
-      showBanner('error', data.message || 'Erreur inconnue.');
+      showModalError(data.message || 'Erreur inconnue.');
   }
 }
 
-function showBanner(type, message) {
-  banner.className = type;
-  banner.textContent = message;
-  banner.hidden = false;
+function showModalLoading() {
+  modalContent.className = 'modal-content loading';
+  modalMessage.textContent = 'Identification en cours…';
+  modalBtn.hidden = true;
+  modal.classList.remove('hidden');
+}
+
+function showModalDone(type, message) {
+  modalContent.className = 'modal-content ' + type;
+  modalMessage.textContent = message;
+  modalBtn.textContent = 'Scanner un autre coureur';
+  modalBtn.onclick = closeModalAndResume;
+  modalBtn.hidden = false;
+  modal.classList.remove('hidden');
   if (navigator.vibrate) navigator.vibrate(type === 'success' ? 100 : [80, 60, 80]);
+}
+
+function showModalError(message, options) {
+  const hideRetry = options && options.hideRetry;
+  modalContent.className = 'modal-content error';
+  modalMessage.textContent = message;
+  if (hideRetry) {
+    modalBtn.hidden = true;
+  } else {
+    modalBtn.textContent = 'Réessayer';
+    modalBtn.onclick = retryLast;
+    modalBtn.hidden = false;
+  }
+  modal.classList.remove('hidden');
+  if (navigator.vibrate) navigator.vibrate([80, 60, 80]);
+}
+
+function retryLast() {
+  showModalLoading();
+  checkIn(lastCode);
+}
+
+function closeModal() {
+  modal.classList.add('hidden');
+}
+
+function closeModalAndResume() {
+  closeModal();
+  processing = false;
+  if (scanner) {
+    try {
+      scanner.resume();
+    } catch (e) {}
+  }
 }
 
 function logout() {

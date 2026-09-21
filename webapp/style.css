@@ -93,24 +93,74 @@ button.ghost {
   border: 2px solid #2c2e38;
 }
 
-#result-banner {
-  width: 100%;
-  max-width: 420px;
-  padding: 18px;
-  border-radius: 12px;
-  font-size: 17px;
-  font-weight: 600;
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+
+.modal-overlay.hidden {
+  display: none;
+}
+
+.modal-content {
+  width: min(360px, 100%);
+  background: var(--panel);
+  border-radius: 18px;
+  padding: 36px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
   text-align: center;
-  min-height: 24px;
+  border: 2px solid #2c2e38;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
 }
 
-#result-banner.hidden {
-  visibility: hidden;
+.modal-content.success { border-color: var(--success); }
+.modal-content.warning { border-color: var(--warning); }
+.modal-content.error { border-color: var(--error); }
+
+#modal-message {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
 }
 
-#result-banner.success { background: var(--success); color: white; }
-#result-banner.warning { background: var(--warning); color: #23180a; }
-#result-banner.error { background: var(--error); color: white; }
+.modal-content.loading #modal-message { color: var(--muted); font-weight: 400; }
+.modal-content.success #modal-message { color: var(--success); }
+.modal-content.warning #modal-message { color: var(--warning); }
+.modal-content.error #modal-message { color: var(--error); }
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #34363f;
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.modal-content:not(.loading) .spinner {
+  display: none;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+#modal-btn {
+  width: 100%;
+}
+
+.modal-content.success #modal-btn { background: var(--success); }
+.modal-content.warning #modal-btn { background: var(--warning); color: #23180a; }
+.modal-content.error #modal-btn { background: var(--error); }
 
 #stats {
   color: var(--muted);
