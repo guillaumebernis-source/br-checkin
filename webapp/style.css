@@ -1,0 +1,118 @@
+:root {
+  --bg: #14151a;
+  --panel: #1f212a;
+  --text: #f2f2f2;
+  --muted: #9a9ca6;
+  --accent: #e63946;
+  --success: #2a9d5c;
+  --warning: #e8912d;
+  --error: #d64545;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #2c2e38;
+}
+
+h1 {
+  font-size: 18px;
+  margin: 0;
+}
+
+button {
+  font-size: 16px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+}
+
+button.ghost {
+  background: transparent;
+  border: 1px solid #444;
+  color: var(--muted);
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+#pin-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  padding: 60px 24px;
+  text-align: center;
+}
+
+#pin-input {
+  width: 100%;
+  max-width: 280px;
+  font-size: 20px;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid #444;
+  background: var(--panel);
+  color: var(--text);
+  text-align: center;
+  letter-spacing: 2px;
+}
+
+.error {
+  color: var(--error);
+}
+
+#scan-screen {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+}
+
+#reader {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 2px solid #2c2e38;
+}
+
+#result-banner {
+  width: 100%;
+  max-width: 420px;
+  padding: 18px;
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: 600;
+  text-align: center;
+  min-height: 24px;
+}
+
+#result-banner.hidden {
+  visibility: hidden;
+}
+
+#result-banner.success { background: var(--success); color: white; }
+#result-banner.warning { background: var(--warning); color: #23180a; }
+#result-banner.error { background: var(--error); color: white; }
+
+#stats {
+  color: var(--muted);
+  font-size: 14px;
+}
