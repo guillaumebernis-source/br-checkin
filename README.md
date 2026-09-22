@@ -12,6 +12,7 @@ Application de pointage pour la course caritative d'Halloween. Un bénévole sca
   - Un **code bénévole** (PIN) protège l'accès à l'API de pointage : sans lui, personne ne peut marquer un dossard "arrivé" même en connaissant l'URL de l'app. C'est la protection principale, puisque l'`Url` elle-même suit un motif prévisible (nom+prénom) et n'est donc pas un secret.
   - Tout transite en HTTPS (Apps Script + GitHub Pages sont HTTPS par défaut).
   - Le double-scan est géré côté serveur : si le dossard est déjà marqué "arrivé" (`Arrivé` = `oui`), l'app affiche un message dédié sans écraser de donnée.
+  - Le repo GitHub est public (nécessaire pour héberger gratuitement sur Pages), mais **ne contient aucune donnée personnelle ni secret** (ni ID du Sheet, ni PIN, ni liste de coureurs). Pour limiter la découverte de l'app elle-même : nom de repo non descriptif (`br-checkin`), `robots.txt` + balise `noindex` pour bloquer l'indexation par les moteurs de recherche. C'est de l'obscurité, pas une vraie protection — la vraie barrière reste le **code bénévole**.
 
 ## Étape 1 — Installer le script (backend)
 
@@ -35,13 +36,15 @@ Ouvre [webapp/config.js](webapp/config.js) et remplace `APPS_SCRIPT_URL` par l'U
 
 ## Étape 3 — Héberger et publier le frontend (GitHub Pages)
 
-✅ Déjà fait : le projet est poussé sur [github.com/guillaumebernis-source/Blood-runners-finish-line-check](https://github.com/guillaumebernis-source/Blood-runners-finish-line-check) et GitHub Pages est activé (branche `main`, racine).
+✅ Déjà fait : le projet est poussé sur [github.com/guillaumebernis-source/br-checkin](https://github.com/guillaumebernis-source/br-checkin) et GitHub Pages est activé (branche `main`, racine).
 
 L'app est disponible sur :
 
 ```
-https://guillaumebernis-source.github.io/Blood-runners-finish-line-check/webapp/
+https://guillaumebernis-source.github.io/br-checkin/webapp/
 ```
+
+> Le repo doit rester **public** pour que Pages fonctionne gratuitement (un repo privé désactive Pages sur un compte GitHub gratuit).
 
 Pour publier une mise à jour (ex. après avoir renseigné `config.js` à l'étape 2) :
 
