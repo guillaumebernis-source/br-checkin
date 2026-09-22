@@ -53,6 +53,17 @@ button.ghost {
   font-size: 13px;
 }
 
+#torch-btn {
+  width: 100%;
+  max-width: 420px;
+}
+
+#torch-btn.on {
+  background: var(--warning);
+  border-color: var(--warning);
+  color: #23180a;
+}
+
 #pin-screen {
   display: flex;
   flex-direction: column;

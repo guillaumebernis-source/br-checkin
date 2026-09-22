@@ -4,12 +4,15 @@ let sessionCount = 0;
 let scanner = null;
 let processing = false;
 let lastCode = null;
+let torchOn = false;
+let torchFeature = null;
 
 const pinScreen = document.getElementById('pin-screen');
 const scanScreen = document.getElementById('scan-screen');
 const pinInput = document.getElementById('pin-input');
 const countEl = document.getElementById('count');
 const logoutBtn = document.getElementById('logout-btn');
+const torchBtn = document.getElementById('torch-btn');
 
 const modal = document.getElementById('result-modal');
 const modalContent = document.getElementById('result-modal-content');
@@ -52,9 +55,42 @@ function startScanner() {
       onScanSuccess,
       () => {}
     )
+    .then(setupTorchButton)
     .catch(err => {
       showModalError("Impossible d'accéder à la caméra : " + err, { hideRetry: true });
     });
+}
+
+function setupTorchButton() {
+  torchFeature = null;
+  torchOn = false;
+  torchBtn.hidden = true;
+  torchBtn.classList.remove('on');
+  torchBtn.textContent = '🔦 Activer le flash';
+
+  try {
+    const capabilities = scanner.getRunningTrackCameraCapabilities();
+    const feature = capabilities.torchFeature();
+    if (feature && feature.isSupported()) {
+      torchFeature = feature;
+      torchBtn.hidden = false;
+    }
+  } catch (e) {
+    // Flash non supporté par cet appareil/navigateur : le bouton reste caché.
+  }
+}
+
+function toggleTorch() {
+  if (!torchFeature) return;
+  const next = !torchOn;
+  torchFeature
+    .apply(next)
+    .then(() => {
+      torchOn = next;
+      torchBtn.classList.toggle('on', torchOn);
+      torchBtn.textContent = torchOn ? '🔦 Désactiver le flash' : '🔦 Activer le flash';
+    })
+    .catch(() => {});
 }
 
 function stopScanner() {
@@ -65,6 +101,10 @@ function stopScanner() {
       .catch(() => {});
     scanner = null;
   }
+  torchFeature = null;
+  torchOn = false;
+  torchBtn.hidden = true;
+  torchBtn.classList.remove('on');
 }
 
 async function onScanSuccess(decodedText) {
@@ -204,6 +244,7 @@ pinInput.addEventListener('keydown', e => {
 });
 
 logoutBtn.addEventListener('click', logout);
+torchBtn.addEventListener('click', toggleTorch);
 
 // Auto-connexion si une session valide (< 24h) est déjà mémorisée sur ce téléphone.
 if (getStoredPin()) {
