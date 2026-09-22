@@ -23,6 +23,15 @@
   <section id="scan-screen" hidden>
     <div id="reader"></div>
     <button id="torch-btn" class="ghost" hidden>🔦 Activer le flash</button>
+
+    <div id="manual-entry">
+      <p>Ou saisir le numéro de dossard :</p>
+      <div class="manual-row">
+        <input id="manual-input" type="text" inputmode="numeric" placeholder="Ex. 12" autocomplete="off" />
+        <button id="manual-submit">Valider</button>
+      </div>
+    </div>
+
     <p id="stats">Dossards enregistrés cette session : <span id="count">0</span></p>
   </section>
 

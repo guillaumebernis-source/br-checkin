@@ -13,6 +13,8 @@ const pinInput = document.getElementById('pin-input');
 const countEl = document.getElementById('count');
 const logoutBtn = document.getElementById('logout-btn');
 const torchBtn = document.getElementById('torch-btn');
+const manualInput = document.getElementById('manual-input');
+const manualSubmit = document.getElementById('manual-submit');
 
 const modal = document.getElementById('result-modal');
 const modalContent = document.getElementById('result-modal-content');
@@ -108,9 +110,21 @@ function stopScanner() {
 }
 
 async function onScanSuccess(decodedText) {
+  await submitCode(decodedText);
+}
+
+async function submitManual() {
+  const value = manualInput.value.trim();
+  if (!value) return;
+  manualInput.value = '';
+  manualInput.blur();
+  await submitCode(value);
+}
+
+async function submitCode(code) {
   if (processing) return;
   processing = true;
-  lastCode = decodedText;
+  lastCode = code;
 
   if (scanner) {
     try {
@@ -119,7 +133,7 @@ async function onScanSuccess(decodedText) {
   }
 
   showModalLoading();
-  await checkIn(decodedText);
+  await checkIn(code);
 }
 
 async function checkIn(code, allowRetry) {
@@ -245,6 +259,10 @@ pinInput.addEventListener('keydown', e => {
 
 logoutBtn.addEventListener('click', logout);
 torchBtn.addEventListener('click', toggleTorch);
+manualSubmit.addEventListener('click', submitManual);
+manualInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitManual();
+});
 
 // Auto-connexion si une session valide (< 24h) est déjà mémorisée sur ce téléphone.
 if (getStoredPin()) {

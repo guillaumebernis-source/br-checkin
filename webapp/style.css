@@ -188,3 +188,35 @@ button.ghost {
   color: var(--muted);
   font-size: 14px;
 }
+
+#manual-entry {
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+}
+
+#manual-entry p {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0 0 8px;
+}
+
+.manual-row {
+  display: flex;
+  gap: 8px;
+}
+
+#manual-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 16px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #444;
+  background: var(--panel);
+  color: var(--text);
+}
+
+#manual-submit {
+  flex-shrink: 0;
+}

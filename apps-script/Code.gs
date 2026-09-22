@@ -5,15 +5,17 @@
  * Colonnes attendues (dans cet ordre) :
  * A: Numéro | B: Nom | C: Prénom | D: Caractéristiques | E: Url | F: Arrivé
  *
- * Les QR codes imprimés sur les dossards encodent la valeur de la colonne
- * Url (c'est déjà comme ça qu'ils ont été générés) : c'est donc sur cette
- * colonne qu'on recherche le dossard scanné.
+ * Le pointage accepte deux types de code :
+ * - le contenu du QR imprimé sur le dossard (= colonne Url)
+ * - le numéro de dossard saisi manuellement (= colonne Numéro), en secours
+ *   si le QR est illisible.
  */
 
 const SHEET_NAME = 'Feuille 1';
 const COL = { NUMERO: 1, NOM: 2, PRENOM: 3, CARACTERISTIQUES: 4, URL: 5, ARRIVE: 6 };
 const ARRIVE_VALUE = 'oui';
-const CACHE_KEY = 'url_index_v1';
+const URL_CACHE_KEY = 'url_index_v1';
+const NUMERO_CACHE_KEY = 'numero_index_v1';
 const CACHE_TTL_SECONDS = 21600; // 6h
 
 function getSheet_() {
@@ -24,28 +26,47 @@ function getStaffPin_() {
   return PropertiesService.getScriptProperties().getProperty('STAFF_PIN');
 }
 
-/** Construit (ou relit depuis le cache) l'index Url -> numéro de ligne. */
-function getUrlIndex_() {
+function buildIndex_(column, cacheKey) {
   const cache = CacheService.getScriptCache();
-  const cached = cache.get(CACHE_KEY);
+  const cached = cache.get(cacheKey);
   if (cached) return JSON.parse(cached);
 
   const sheet = getSheet_();
   const lastRow = sheet.getLastRow();
   const index = {};
   if (lastRow >= 2) {
-    const urls = sheet.getRange(2, COL.URL, lastRow - 1, 1).getValues();
-    urls.forEach((row, i) => {
-      const url = String(row[0]).trim();
-      if (url) index[url] = i + 2;
+    const values = sheet.getRange(2, column, lastRow - 1, 1).getValues();
+    values.forEach((row, i) => {
+      const key = String(row[0]).trim();
+      if (key) index[key] = i + 2;
     });
   }
-  cache.put(CACHE_KEY, JSON.stringify(index), CACHE_TTL_SECONDS);
+  cache.put(cacheKey, JSON.stringify(index), CACHE_TTL_SECONDS);
   return index;
 }
 
-function invalidateUrlIndex_() {
-  CacheService.getScriptCache().remove(CACHE_KEY);
+function getUrlIndex_() {
+  return buildIndex_(COL.URL, URL_CACHE_KEY);
+}
+
+function getNumeroIndex_() {
+  return buildIndex_(COL.NUMERO, NUMERO_CACHE_KEY);
+}
+
+function invalidateIndexes_() {
+  const cache = CacheService.getScriptCache();
+  cache.remove(URL_CACHE_KEY);
+  cache.remove(NUMERO_CACHE_KEY);
+}
+
+/** Cherche une ligne par contenu de QR (Url) puis, à défaut, par numéro de dossard. */
+function findRow_(code) {
+  let row = getUrlIndex_()[code] || getNumeroIndex_()[code];
+  if (row) return row;
+
+  // Pas trouvé : l'info est peut-être arrivée après la construction du cache.
+  invalidateIndexes_();
+  return getUrlIndex_()[code] || getNumeroIndex_()[code];
 }
 
 function jsonOut_(obj) {
@@ -66,14 +87,7 @@ function doPost(e) {
       return jsonOut_({ status: 'error', message: 'QR code vide.' });
     }
 
-    let index = getUrlIndex_();
-    let row = index[code];
-
-    if (!row) {
-      // L'url est peut-être arrivée après la construction du cache : on force un rafraîchissement.
-      invalidateUrlIndex_();
-      row = getUrlIndex_()[code];
-    }
+    const row = findRow_(code);
     if (!row) {
       return jsonOut_({ status: 'not_found', message: 'Dossard inconnu.' });
     }
