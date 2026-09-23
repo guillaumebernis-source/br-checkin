@@ -12,7 +12,6 @@ const pinScreen = document.getElementById('pin-screen');
 const scanScreen = document.getElementById('scan-screen');
 const pinInput = document.getElementById('pin-input');
 const countEl = document.getElementById('count');
-const logoutBtn = document.getElementById('logout-btn');
 const torchBtn = document.getElementById('torch-btn');
 const manualInput = document.getElementById('manual-input');
 const manualSubmit = document.getElementById('manual-submit');
@@ -48,7 +47,6 @@ function setStoredPin(pin) {
 function startScanner() {
   pinScreen.hidden = true;
   scanScreen.hidden = false;
-  logoutBtn.hidden = false;
 
   scanner = new Html5Qrcode('reader');
   scanner
@@ -257,7 +255,6 @@ function logout() {
   stopScanner();
   scanScreen.hidden = true;
   pinScreen.hidden = false;
-  logoutBtn.hidden = true;
   pinInput.value = '';
 }
 
@@ -272,7 +269,6 @@ pinInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('pin-submit').click();
 });
 
-logoutBtn.addEventListener('click', logout);
 torchBtn.addEventListener('click', toggleTorch);
 manualSubmit.addEventListener('click', submitManual);
 manualInput.addEventListener('keydown', e => {
