@@ -67,6 +67,8 @@ Pages redéploie automatiquement en 1-2 minutes après chaque `push`.
    - 🟠 **Orange** : "Cette personne est déjà enregistrée comme arrivée" (double scan).
    - 🔴 **Rouge** : dossard inconnu ou erreur réseau (le scan est automatiquement réessayé une fois).
 4. Le Google Sheet se met à jour en direct — tu peux le garder ouvert en parallèle pour un suivi global (nombre d'arrivées, etc.).
+5. Un bouton **"🔦 Activer le flash"** apparaît sous la caméra si l'appareil le supporte. **Sur iPhone (Safari), il ne s'affichera jamais** — Apple ne permet pas aux navigateurs de contrôler la torche. Sur ces téléphones, utiliser le flash natif (Centre de contrôle) en parallèle de l'app. Fonctionne en général sur Android/Chrome.
+6. Si un QR est illisible (dossard abîmé, mauvaise lumière), le champ **"Ou saisir le numéro de dossard"** sous le scanner permet de pointer sans scanner.
 
 ## Limites à connaître
 
