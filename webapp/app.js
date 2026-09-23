@@ -4,6 +4,7 @@ let sessionCount = 0;
 let scanner = null;
 let processing = false;
 let lastCode = null;
+let lastSource = null;
 let torchOn = false;
 let torchFeature = null;
 
@@ -110,7 +111,7 @@ function stopScanner() {
 }
 
 async function onScanSuccess(decodedText) {
-  await submitCode(decodedText);
+  await submitCode(decodedText, 'scan');
 }
 
 async function submitManual() {
@@ -118,13 +119,14 @@ async function submitManual() {
   if (!value) return;
   manualInput.value = '';
   manualInput.blur();
-  await submitCode(value);
+  await submitCode(value, 'manual');
 }
 
-async function submitCode(code) {
+async function submitCode(code, source) {
   if (processing) return;
   processing = true;
   lastCode = code;
+  lastSource = source;
 
   if (scanner) {
     try {
@@ -207,7 +209,7 @@ function showModalError(message, options) {
     modalBtn.hidden = true;
   } else {
     modalBtn.textContent = 'Réessayer';
-    modalBtn.onclick = retryLast;
+    modalBtn.onclick = lastSource === 'manual' ? returnToManualEntry : retryLast;
     modalBtn.hidden = false;
   }
   modal.classList.remove('hidden');
@@ -217,6 +219,19 @@ function showModalError(message, options) {
 function retryLast() {
   showModalLoading();
   checkIn(lastCode);
+}
+
+function returnToManualEntry() {
+  closeModal();
+  processing = false;
+  if (scanner) {
+    try {
+      scanner.resume();
+    } catch (e) {}
+  }
+  manualInput.value = lastCode || '';
+  manualInput.focus();
+  manualInput.select();
 }
 
 function closeModal() {
