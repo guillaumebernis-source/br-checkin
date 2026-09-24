@@ -93,7 +93,7 @@ function doPost(e) {
     }
 
     const lock = LockService.getScriptLock();
-    lock.waitLock(10000);
+    lock.waitLock(5000);
     try {
       const sheet = getSheet_();
       const data = sheet.getRange(row, 1, 1, COL.ARRIVE).getValues()[0];

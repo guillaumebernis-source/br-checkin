@@ -136,20 +136,27 @@ async function submitCode(code, source) {
   await checkIn(code);
 }
 
+const REQUEST_TIMEOUT_MS = 8000;
+
 async function checkIn(code, allowRetry) {
   if (allowRetry === undefined) allowRetry = true;
   const pin = getStoredPin() || '';
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
     const res = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ code: code, pin: pin }),
+      signal: controller.signal,
     });
     const data = await res.json();
     handleResult(data);
   } catch (err) {
     if (allowRetry) return checkIn(code, false);
     showModalError('Erreur réseau. Vérifie la connexion et réessaie.');
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
