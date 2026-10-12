@@ -68,7 +68,7 @@ Pages redéploie automatiquement en 1-2 minutes après chaque `push`.
    - 🔴 **Rouge** : dossard inconnu ou erreur réseau (le scan est automatiquement réessayé une fois).
 4. Le Google Sheet se met à jour en direct — tu peux le garder ouvert en parallèle pour un suivi global (nombre d'arrivées, etc.).
 5. Un bouton **"🔦 Activer le flash"** apparaît sous la caméra si l'appareil le supporte. **Sur iPhone (Safari), il ne s'affichera jamais** — Apple ne permet pas aux navigateurs de contrôler la torche. Sur ces téléphones, utiliser le flash natif (Centre de contrôle) en parallèle de l'app. Fonctionne en général sur Android/Chrome.
-6. L'app peut être ajoutée à l'écran d'accueil (icône « BR Pointage », coureur sur lune rouge) : iPhone via Safari > Partager > Sur l'écran d'accueil, Android via le menu de Chrome > Ajouter à l'écran d'accueil. Elle s'ouvre alors en plein écran, et le code bénévole est à ressaisir une fois (Safari et l'app installée ne partagent pas leur mémoire). Les icônes sont dans `webapp/` (`icon.svg` est la source vectorielle).
+6. L'app peut être ajoutée à l'écran d'accueil (icône « BR Pointage » : BR ensanglanté coiffé d'un chapeau de sorcière devant la pleine lune) : iPhone via Safari > Partager > Sur l'écran d'accueil, Android via le menu de Chrome > Ajouter à l'écran d'accueil. Elle s'ouvre alors en plein écran, et le code bénévole est à ressaisir une fois (Safari et l'app installée ne partagent pas leur mémoire). Les icônes sont dans `webapp/` (`icon.svg` est la source vectorielle).
 7. Si un QR est illisible (dossard abîmé, mauvaise lumière), le champ **"Ou saisir le numéro de dossard"** sous le scanner permet de pointer sans scanner.
 
 ## Limites à connaître
