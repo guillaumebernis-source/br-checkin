@@ -16,7 +16,7 @@
  * - checkin   : enregistre l'arrivée (Arrivé.e ? = oui + horodatage)
  * - dns       : déclare le coureur non partant (Arrivé.e ? = DNS + horodatage)
  * - stats     : nombre de coureurs inscrits / arrivés / encore en course
- * - remaining : idem + liste des coureurs encore en course
+ * - remaining : idem + liste des coureurs encore en course (numéro, nom, téléphone)
  *
  * Un coureur = une ligne dont la colonne Nom est renseignée (les numéros pas encore attribués
  * ne comptent pas). Un coureur DNS (non partant) n'est plus compté parmi ceux "toujours en course".
@@ -125,6 +125,15 @@ function jsonOut_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
+/**
+ * Téléphone en texte. Si la cellule est au format nombre, Sheets a perdu le 0 initial d'un numéro
+ * français (0612345678 -> 612345678) : on le rétablit pour les nombres à 9 chiffres.
+ */
+function formatTel_(v) {
+  if (typeof v === 'number' && String(v).length === 9) return '0' + v;
+  return String(v == null ? '' : v).trim();
+}
+
 /** Lit tous les coureurs (lignes avec un nom) en un seul appel. */
 function readRunners_() {
   const sheet = getSheet_();
@@ -138,6 +147,7 @@ function readRunners_() {
     .map(r => ({
       numero: r[COL.NUMERO - 1],
       nom: r[COL.NOM - 1],
+      tel: formatTel_(r[COL.TEL - 1]),
       state: String(r[COL.ARRIVE - 1] || '').trim().toLowerCase(),
     }));
 }
@@ -156,7 +166,7 @@ function statsResponse_(withList) {
   };
   if (withList) {
     response.runners = remaining
-      .map(r => ({ numero: r.numero, nom: r.nom }))
+      .map(r => ({ numero: r.numero, nom: r.nom, tel: r.tel }))
       .sort((a, b) => String(a.numero).localeCompare(String(b.numero), 'fr', { numeric: true }));
   }
   return response;

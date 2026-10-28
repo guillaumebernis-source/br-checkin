@@ -368,3 +368,36 @@ button.ghost {
   font-weight: 700;
   text-align: center;
 }
+
+#runner-list .info {
+  flex: 1;
+  min-width: 0;
+}
+
+#runner-list .name {
+  overflow-wrap: anywhere;
+}
+
+#runner-list .tel-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+#runner-list .tel.missing {
+  font-size: 13px;
+  font-style: italic;
+}
+
+.copy-btn {
+  background: transparent;
+  border: 1px solid #444;
+  padding: 4px 10px;
+  min-width: 42px;
+  min-height: 34px;
+  font-size: 17px;
+  line-height: 1;
+}

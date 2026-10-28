@@ -412,12 +412,80 @@ function renderList(runners) {
     const num = document.createElement('span');
     num.className = 'num';
     num.textContent = '#' + r.numero;
-    const name = document.createElement('span');
+
+    const info = document.createElement('div');
+    info.className = 'info';
+    const name = document.createElement('div');
+    name.className = 'name';
     name.textContent = r.nom;
+    info.appendChild(name);
+
+    // tel absent (ancien backend) : on n'affiche rien ; tel vide : on le dit.
+    if (r.tel !== undefined) {
+      const telRow = document.createElement('div');
+      telRow.className = 'tel-row';
+      const tel = document.createElement('span');
+      tel.className = 'tel';
+      tel.textContent = r.tel || 'Téléphone non renseigné';
+      if (!r.tel) tel.classList.add('missing');
+      telRow.appendChild(tel);
+      if (r.tel) telRow.appendChild(makeCopyButton(r.tel));
+      info.appendChild(telRow);
+    }
+
     li.appendChild(num);
-    li.appendChild(name);
+    li.appendChild(info);
     runnerList.appendChild(li);
   });
+}
+
+function legacyCopy(text) {
+  return new Promise((resolve, reject) => {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    area.setSelectionRange(0, text.length);
+    let ok = false;
+    try {
+      ok = document.execCommand('copy');
+    } catch (e) {}
+    document.body.removeChild(area);
+    if (ok) resolve();
+    else reject(new Error('copy failed'));
+  });
+}
+
+function copyText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text).catch(() => legacyCopy(text));
+  }
+  return legacyCopy(text);
+}
+
+function makeCopyButton(text) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'copy-btn';
+  btn.textContent = '💾';
+  btn.title = 'Copier le numéro';
+  btn.setAttribute('aria-label', 'Copier le numéro ' + text);
+  btn.addEventListener('click', () => {
+    copyText(text)
+      .then(() => flashCopyButton(btn, '✅'))
+      .catch(() => flashCopyButton(btn, '⚠️'));
+  });
+  return btn;
+}
+
+function flashCopyButton(btn, symbol) {
+  btn.textContent = symbol;
+  setTimeout(() => {
+    btn.textContent = '💾';
+  }, 1500);
 }
 
 function showRemainingError() {
