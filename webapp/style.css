@@ -112,8 +112,25 @@ button.ghost {
   text-align: center;
 }
 
-#pin-input {
+.pin-field {
+  display: flex;
+  gap: 8px;
   width: 100%;
+  max-width: 340px;
+}
+
+#pin-toggle {
+  flex-shrink: 0;
+}
+
+#pin-submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+#pin-input {
+  flex: 1;
+  min-width: 0;
   max-width: 280px;
   font-size: 20px;
   padding: 14px;
@@ -392,12 +409,18 @@ button.ghost {
   font-style: italic;
 }
 
-.copy-btn {
+.copy-btn,
+.call-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: 1px solid #444;
+  border-radius: 10px;
   padding: 4px 10px;
   min-width: 42px;
   min-height: 34px;
   font-size: 17px;
   line-height: 1;
+  text-decoration: none;
 }

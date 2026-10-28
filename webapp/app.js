@@ -2,6 +2,7 @@ const PIN_STORAGE_KEY = 'br_staff_pin';
 const SESSION_DURATION_MS = 24 * 60 * 60 * 1000; // 24h
 const REQUEST_TIMEOUT_MS = 8000;
 const LIST_TIMEOUT_MS = 15000;
+const SESSION_REFUSED_MSG = 'Code refusé ou expiré. Saisis-le à nouveau.';
 let sessionCount = 0;
 let dnsCount = 0;
 let scanner = null;
@@ -20,6 +21,9 @@ const pinScreen = document.getElementById('pin-screen');
 const scanScreen = document.getElementById('scan-screen');
 const remainingScreen = document.getElementById('remaining-screen');
 const pinInput = document.getElementById('pin-input');
+const pinSubmit = document.getElementById('pin-submit');
+const pinToggle = document.getElementById('pin-toggle');
+const pinError = document.getElementById('pin-error');
 const countEl = document.getElementById('count');
 const torchBtn = document.getElementById('torch-btn');
 const dnsWarning = document.getElementById('dns-warning');
@@ -297,7 +301,7 @@ function handleResult(data) {
       break;
     case 'unauthorized':
       closeModal();
-      logout();
+      logout(SESSION_REFUSED_MSG);
       break;
     default:
       showModalError(data.message || 'Erreur inconnue.');
@@ -429,7 +433,11 @@ function renderList(runners) {
       tel.textContent = r.tel || 'Téléphone non renseigné';
       if (!r.tel) tel.classList.add('missing');
       telRow.appendChild(tel);
-      if (r.tel) telRow.appendChild(makeCopyButton(r.tel));
+      if (r.tel) {
+        const call = makeCallLink(r.tel);
+        if (call) telRow.appendChild(call);
+        telRow.appendChild(makeCopyButton(r.tel));
+      }
       info.appendChild(telRow);
     }
 
@@ -437,6 +445,18 @@ function renderList(runners) {
     li.appendChild(info);
     runnerList.appendChild(li);
   });
+}
+
+function makeCallLink(text) {
+  const number = text.replace(/[^\d+]/g, '');
+  if (!number) return null;
+  const link = document.createElement('a');
+  link.className = 'call-btn';
+  link.href = 'tel:' + number;
+  link.textContent = '📞';
+  link.title = 'Appeler';
+  link.setAttribute('aria-label', 'Appeler ' + text);
+  return link;
 }
 
 function legacyCopy(text) {
@@ -498,7 +518,7 @@ function showRemainingError() {
 async function fetchRemaining(action) {
   const data = await callApi({ action: action }, LIST_TIMEOUT_MS, true);
   if (data.status === 'unauthorized') {
-    logout();
+    logout(SESSION_REFUSED_MSG);
     return null;
   }
   if (data.status !== 'ok') throw new Error(data.message || 'Erreur');
@@ -561,7 +581,23 @@ function refreshRemaining() {
 
 // ---------- Session ----------
 
-function logout() {
+function showPinError(message) {
+  pinError.textContent = message;
+  pinError.hidden = false;
+}
+
+function clearPinError() {
+  pinError.hidden = true;
+}
+
+function setPinVisible(visible) {
+  pinInput.type = visible ? 'text' : 'password';
+  pinToggle.textContent = visible ? 'Masquer' : 'Afficher';
+  pinToggle.setAttribute('aria-pressed', String(visible));
+  pinToggle.setAttribute('aria-label', visible ? 'Masquer le code' : 'Afficher le code');
+}
+
+function logout(message) {
   localStorage.removeItem(PIN_STORAGE_KEY);
   stopScanner();
   remainingRequestId++;
@@ -573,17 +609,50 @@ function logout() {
   remainingScreen.hidden = true;
   pinScreen.hidden = false;
   pinInput.value = '';
+  setPinVisible(false);
+  if (message) showPinError(message);
+  else clearPinError();
 }
 
-document.getElementById('pin-submit').addEventListener('click', () => {
+// Vérifie le code auprès du serveur avant d'entrer : "unauthorized" = code faux, toute autre
+// réponse du script (même une erreur) prouve que le code a été accepté.
+async function submitPin() {
   const pin = pinInput.value.trim();
-  if (!pin) return;
-  setStoredPin(pin);
-  enterApp();
-});
+  if (!pin) {
+    showPinError('Saisis le code bénévole.');
+    return;
+  }
+  clearPinError();
+  pinSubmit.disabled = true;
+  pinSubmit.textContent = 'Vérification…';
+  try {
+    const data = await callApi({ action: 'stats', pin: pin }, LIST_TIMEOUT_MS, true);
+    if (data.status === 'unauthorized') {
+      showPinError('Code incorrect. Vérifie les majuscules et réessaie.');
+      pinInput.focus();
+      pinInput.select();
+      return;
+    }
+    setStoredPin(pin);
+    enterApp();
+  } catch (err) {
+    showPinError('Impossible de vérifier le code (réseau). Réessaie.');
+  } finally {
+    pinSubmit.disabled = false;
+    pinSubmit.textContent = 'Entrer';
+  }
+}
+
+pinSubmit.addEventListener('click', submitPin);
 
 pinInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('pin-submit').click();
+  if (e.key === 'Enter') submitPin();
+});
+pinInput.addEventListener('input', clearPinError);
+
+pinToggle.addEventListener('click', () => {
+  setPinVisible(pinInput.type === 'password');
+  pinInput.focus();
 });
 
 menuBtn.addEventListener('click', e => {

@@ -29,9 +29,12 @@
 
   <section id="pin-screen">
     <p>Entrez le code bénévole pour activer le scanner.</p>
-    <input id="pin-input" type="password" placeholder="Code bénévole" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="go" />
-    <button id="pin-submit">Valider</button>
-    <p id="pin-error" class="error" hidden>Code incorrect.</p>
+    <div class="pin-field">
+      <input id="pin-input" type="password" placeholder="Code bénévole" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="go" />
+      <button id="pin-toggle" type="button" class="ghost" aria-label="Afficher le code" aria-pressed="false">Afficher</button>
+    </div>
+    <button id="pin-submit">Entrer</button>
+    <p id="pin-error" class="error" role="alert" hidden></p>
   </section>
 
   <section id="scan-screen" hidden>

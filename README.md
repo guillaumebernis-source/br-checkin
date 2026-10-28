@@ -66,7 +66,7 @@ Pages redéploie automatiquement en 1-2 minutes après chaque `push`.
 
 ## Étape 4 — Le jour J
 
-1. Chaque bénévole ouvre l'URL de l'app sur son téléphone, saisit le **code bénévole** une seule fois (mémorisé ensuite sur son téléphone).
+1. Chaque bénévole ouvre l'URL de l'app sur son téléphone, saisit le **code bénévole** une seule fois (mémorisé 24 h sur son téléphone) et touche **Entrer**. Le code est vérifié auprès du serveur : « Code incorrect » s'affiche en cas d'erreur, et le bouton **Afficher** permet de voir ce qu'on tape. Si le code est changé dans Apps Script, l'app le redemande avec un message au premier appel refusé.
 2. Il scanne les QR codes des dossards au fur et à mesure des arrivées.
 3. Résultat affiché immédiatement :
    - 🟢 **Vert** : arrivée enregistrée, avec numéro/nom/prénom.
@@ -75,7 +75,7 @@ Pages redéploie automatiquement en 1-2 minutes après chaque `push`.
 4. Le Google Sheet se met à jour en direct — tu peux le garder ouvert en parallèle pour un suivi global (nombre d'arrivées, etc.). Chaque arrivée est horodatée dans la colonne `Heure émargement` ; un doublon ne modifie jamais l'heure déjà enregistrée.
 5. Le **menu burger** (en haut à droite) donne accès à trois écrans :
    - **Émargement** : le scanner d'arrivées.
-   - **Coureurs toujours en course** : le nombre de coureurs qui ne sont ni arrivés ni non partants, avec un bouton pour afficher leur liste (par numéro de dossard, avec leur nom et leur téléphone) et un bouton « Actualiser ». Une disquette 💾 à côté du téléphone le copie dans le presse-papiers (✅ si c'est copié). Le téléphone vient de la colonne `C` ; si une cellule au format nombre a perdu son 0 initial, il est rétabli pour les numéros à 9 chiffres. Les chiffres sont lus dans le Sheet à l'ouverture ou à l'actualisation, pas en temps réel.
+   - **Coureurs toujours en course** : le nombre de coureurs qui ne sont ni arrivés ni non partants, avec un bouton pour afficher leur liste (par numéro de dossard, avec leur nom et leur téléphone) et un bouton « Actualiser ». Un bouton 📞 à côté du téléphone lance l'appel (sur téléphone, l'app d'appel s'ouvre avec le numéro), et une disquette 💾 le copie dans le presse-papiers (✅ si c'est copié). Le téléphone vient de la colonne `C` ; si une cellule au format nombre a perdu son 0 initial, il est rétabli pour les numéros à 9 chiffres. Les chiffres sont lus dans le Sheet à l'ouverture ou à l'actualisation, pas en temps réel.
    - **Non partant** : le même scanner (et la même saisie manuelle), mais le flash écrit **`DNS`** dans `Arrivé.e ?` et l'heure dans `Heure émargement`. Un bandeau rouge « Attention : flash pour les non-partants » rappelle le mode. Un coureur DNS n'est plus compté « en course ». Le script n'écrase jamais un `oui` par un `DNS` ni l'inverse : il prévient le bénévole (message orange) au lieu de modifier la ligne.
    La caméra est coupée quand on quitte les écrans de scan et relancée au retour ; elle reste active en passant d'Émargement à Non partant.
 6. Un bouton **"🔦 Activer le flash"** apparaît sous la caméra si l'appareil le supporte. **Sur iPhone (Safari), il ne s'affichera jamais** — Apple ne permet pas aux navigateurs de contrôler la torche. Sur ces téléphones, utiliser le flash natif (Centre de contrôle) en parallèle de l'app. Fonctionne en général sur Android/Chrome.
