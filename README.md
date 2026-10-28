@@ -22,7 +22,7 @@ Application de pointage pour la course caritative d'Halloween. Un bénévole sca
    - **Garde-fous** : le script refuse d'écrire (message « Colonnes du Sheet incohérentes ») si `E` ou `F` contiennent déjà autre chose que `oui`/`non`/`DNS`/une date, par exemple après un déplacement de colonnes. Il vérifie aussi que la ligne trouvée correspond bien au code scanné, même après un tri des lignes ; la fonction `viderCache` (à lancer à la main) force une relecture complète.
 1. Dans le Sheet : **Extensions > Apps Script**.
 2. Supprime le contenu par défaut de `Code.gs` et colle le contenu de [apps-script/Code.gs](apps-script/Code.gs).
-3. Choisis un **code bénévole** (ex. `HALLOWEEN26`, au moins 6 caractères pour limiter le brute-force). Dans l'éditeur Apps Script : icône ⚙️ **Paramètres du projet > Propriétés du script > Ajouter une propriété** :
+3. Choisis un **code bénévole alphanumérique** : au moins 8 caractères mêlant lettres et chiffres, sans mot courant ni exemple repris d'un document public. Ce code protège aussi les noms et téléphones affichés dans « Coureurs toujours en course », et l'app ouvre un clavier complet pour le saisir. Dans l'éditeur Apps Script : icône ⚙️ **Paramètres du projet > Propriétés du script > Ajouter une propriété** :
    - Propriété : `STAFF_PIN`
    - Valeur : ton code choisi
 4. **Déployer > Nouveau déploiement** :
@@ -85,5 +85,5 @@ Pages redéploie automatiquement en 1-2 minutes après chaque `push`.
 ## Limites à connaître
 
 - **Quota Apps Script** : un compte Google grand public autorise autour de 30 exécutions simultanées du même script. Avec 50 bénévoles qui scannent de façon non parfaitement synchronisée, ça passe largement ; en cas de pic extrême, l'app réessaie automatiquement une fois avant d'afficher une erreur — demander au bénévole de rescanner suffit alors.
-- **Brute-force du code bénévole** : pas de limitation de tentatives côté script. Le risque est faible pour un évènement caritatif ponctuel, mais choisis un code d'au moins 6-8 caractères plutôt qu'un simple 4 chiffres.
+- **Brute-force du code bénévole** : pas de limitation de tentatives côté script, et l'URL du script est publique. Le code protège des données personnelles (noms, téléphones) : prends un code aléatoire d'au moins 8 caractères alphanumériques, jamais un mot du dictionnaire ni un code à chiffres seuls.
 - Si tu veux changer le code bénévole après distribution, il suffit de modifier la propriété `STAFF_PIN` dans Apps Script — les téléphones déjà connectés recevront un `unauthorized` au prochain scan et redemanderont le nouveau code.
