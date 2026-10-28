@@ -17,6 +17,13 @@
 <body>
   <header>
     <h1>🏃 Blood Runners — Pointage</h1>
+    <button id="menu-btn" class="icon-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false" hidden>
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M3 6h16M3 11h16M3 16h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <nav id="menu" hidden>
+      <button class="menu-item active" data-view="scan">Émargement</button>
+      <button class="menu-item" data-view="remaining">Coureurs toujours en course</button>
+    </nav>
   </header>
 
   <section id="pin-screen">
@@ -39,6 +46,20 @@
     </div>
 
     <p id="stats">Dossards enregistrés cette session : <span id="count">0</span></p>
+  </section>
+
+  <section id="remaining-screen" hidden>
+    <div class="stat-card">
+      <div id="remaining-count" class="stat-number">…</div>
+      <div id="remaining-label" class="stat-label">coureurs toujours en course</div>
+      <div id="remaining-detail" class="stat-detail"></div>
+    </div>
+    <p id="remaining-error" class="error" hidden></p>
+    <div class="remaining-actions">
+      <button id="list-btn">Voir la liste des coureurs</button>
+      <button id="refresh-btn" class="ghost">↻ Actualiser</button>
+    </div>
+    <ul id="runner-list" hidden></ul>
   </section>
 
   <div id="result-modal" class="modal-overlay hidden">

@@ -16,6 +16,7 @@ Application de pointage pour la course caritative d'Halloween. Un bénévole sca
 
 ## Étape 1 — Installer le script (backend)
 
+0. Dans le Sheet, ajoute en **G1** l'en-tête `Heure d'arrivée` (colonne juste après `Arrivé`). Le script y écrit la date et l'heure exactes du scan, en même temps que `oui`. Pense à vérifier le fuseau horaire du Sheet (**Fichier > Paramètres**, onglet Général) : l'heure affichée suit ce réglage.
 1. Dans le Sheet : **Extensions > Apps Script**.
 2. Supprime le contenu par défaut de `Code.gs` et colle le contenu de [apps-script/Code.gs](apps-script/Code.gs).
 3. Choisis un **code bénévole** (ex. `HALLOWEEN26`, au moins 6 caractères pour limiter le brute-force). Dans l'éditeur Apps Script : icône ⚙️ **Paramètres du projet > Propriétés du script > Ajouter une propriété** :
@@ -28,7 +29,9 @@ Application de pointage pour la course caritative d'Halloween. Un bénévole sca
    - Clique sur **Déployer**, autorise l'accès.
    - Copie l'**URL du Web App** (`https://script.google.com/macros/s/AKfycb.../exec`).
 
-> Pour re-tester le jour J sans polluer les vraies données : la fonction `reinitialiserArrivees` (à exécuter manuellement dans l'éditeur, jamais depuis l'app) vide toute la colonne `Arrivé`.
+> Pour re-tester le jour J sans polluer les vraies données : la fonction `reinitialiserArrivees` (à exécuter manuellement dans l'éditeur, jamais depuis l'app) vide les colonnes `Arrivé` et `Heure d'arrivée`.
+
+**Mettre à jour le script sans changer l'URL du Web App** : colle le nouveau `Code.gs`, puis **Déployer > Gérer les déploiements > icône crayon sur le déploiement existant > Version : Nouvelle version > Déployer**. L'URL reste la même, rien à changer dans `config.js`. (« Nouveau déploiement » génère au contraire une nouvelle URL à reporter dans `config.js`.)
 
 ## Étape 2 — Configurer le frontend
 
@@ -66,10 +69,11 @@ Pages redéploie automatiquement en 1-2 minutes après chaque `push`.
    - 🟢 **Vert** : arrivée enregistrée, avec numéro/nom/prénom.
    - 🟠 **Orange** : "Cette personne est déjà enregistrée comme arrivée" (double scan).
    - 🔴 **Rouge** : dossard inconnu ou erreur réseau (le scan est automatiquement réessayé une fois).
-4. Le Google Sheet se met à jour en direct — tu peux le garder ouvert en parallèle pour un suivi global (nombre d'arrivées, etc.).
-5. Un bouton **"🔦 Activer le flash"** apparaît sous la caméra si l'appareil le supporte. **Sur iPhone (Safari), il ne s'affichera jamais** — Apple ne permet pas aux navigateurs de contrôler la torche. Sur ces téléphones, utiliser le flash natif (Centre de contrôle) en parallèle de l'app. Fonctionne en général sur Android/Chrome.
-6. L'app peut être ajoutée à l'écran d'accueil (icône « BR Pointage » : BR ensanglanté coiffé d'un chapeau de sorcière devant la pleine lune) : iPhone via Safari > Partager > Sur l'écran d'accueil, Android via le menu de Chrome > Ajouter à l'écran d'accueil. Elle s'ouvre alors en plein écran, et le code bénévole est à ressaisir une fois (Safari et l'app installée ne partagent pas leur mémoire). Les icônes sont dans `webapp/` (`icon.svg` est la source vectorielle).
-7. Si un QR est illisible (dossard abîmé, mauvaise lumière), le champ **"Ou saisir le numéro de dossard"** sous le scanner permet de pointer sans scanner.
+4. Le Google Sheet se met à jour en direct — tu peux le garder ouvert en parallèle pour un suivi global (nombre d'arrivées, etc.). Chaque arrivée est horodatée dans la colonne `Heure d'arrivée` ; un doublon ne modifie jamais l'heure déjà enregistrée.
+5. Le **menu burger** (en haut à droite) donne accès à deux écrans : **Émargement** (le scanner) et **Coureurs toujours en course**. Ce second écran affiche le nombre de coureurs qui ne sont pas encore arrivés, avec un bouton pour afficher leur liste (par numéro de dossard) et un bouton « Actualiser ». Les chiffres sont lus dans le Sheet au moment de l'ouverture ou de l'actualisation, pas en temps réel. La caméra est coupée quand on quitte l'émargement et relancée au retour.
+6. Un bouton **"🔦 Activer le flash"** apparaît sous la caméra si l'appareil le supporte. **Sur iPhone (Safari), il ne s'affichera jamais** — Apple ne permet pas aux navigateurs de contrôler la torche. Sur ces téléphones, utiliser le flash natif (Centre de contrôle) en parallèle de l'app. Fonctionne en général sur Android/Chrome.
+7. L'app peut être ajoutée à l'écran d'accueil (icône « BR Pointage » : BR ensanglanté coiffé d'un chapeau de sorcière devant la pleine lune) : iPhone via Safari > Partager > Sur l'écran d'accueil, Android via le menu de Chrome > Ajouter à l'écran d'accueil. Elle s'ouvre alors en plein écran, et le code bénévole est à ressaisir une fois (Safari et l'app installée ne partagent pas leur mémoire). Les icônes sont dans `webapp/` (`icon.svg` est la source vectorielle).
+8. Si un QR est illisible (dossard abîmé, mauvaise lumière), le champ **"Ou saisir le numéro de dossard"** sous le scanner permet de pointer sans scanner.
 
 ## Limites à connaître
 

@@ -3,16 +3,21 @@
  * À coller dans Extensions > Apps Script du Google Sheet "CSV test BR24".
  *
  * Colonnes attendues (dans cet ordre) :
- * A: Numéro | B: Nom | C: Prénom | D: Caractéristiques | E: Url | F: Arrivé
+ * A: Numéro | B: Nom | C: Prénom | D: Caractéristiques | E: Url | F: Arrivé | G: Heure d'arrivée
  *
  * Le pointage accepte deux types de code :
  * - le contenu du QR imprimé sur le dossard (= colonne Url)
  * - le numéro de dossard saisi manuellement (= colonne Numéro), en secours
  *   si le QR est illisible.
+ *
+ * Actions acceptées par doPost (champ "action", "checkin" par défaut) :
+ * - checkin   : enregistre l'arrivée (Arrivé = oui + horodatage)
+ * - stats     : nombre de coureurs inscrits / arrivés / encore en course
+ * - remaining : idem + liste des coureurs encore en course
  */
 
 const SHEET_NAME = 'Feuille 1';
-const COL = { NUMERO: 1, NOM: 2, PRENOM: 3, CARACTERISTIQUES: 4, URL: 5, ARRIVE: 6 };
+const COL = { NUMERO: 1, NOM: 2, PRENOM: 3, CARACTERISTIQUES: 4, URL: 5, ARRIVE: 6, HEURE: 7 };
 const ARRIVE_VALUE = 'oui';
 const URL_CACHE_KEY = 'url_index_v1';
 const NUMERO_CACHE_KEY = 'numero_index_v1';
@@ -73,16 +78,56 @@ function jsonOut_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
+/** Lit tous les coureurs (lignes avec au moins un numéro ou un nom) en un seul appel. */
+function readRunners_() {
+  const sheet = getSheet_();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  return sheet
+    .getRange(2, 1, lastRow - 1, COL.ARRIVE)
+    .getValues()
+    .filter(r => String(r[COL.NUMERO - 1]).trim() !== '' || String(r[COL.NOM - 1]).trim() !== '')
+    .map(r => ({
+      numero: r[COL.NUMERO - 1],
+      nom: r[COL.NOM - 1],
+      prenom: r[COL.PRENOM - 1],
+      arrive: String(r[COL.ARRIVE - 1] || '').trim().toLowerCase() === ARRIVE_VALUE,
+    }));
+}
+
+function statsResponse_(withList) {
+  const runners = readRunners_();
+  const remaining = runners.filter(r => !r.arrive);
+  const response = {
+    status: 'ok',
+    total: runners.length,
+    arrived: runners.length - remaining.length,
+    remaining: remaining.length,
+  };
+  if (withList) {
+    response.runners = remaining
+      .map(r => ({ numero: r.numero, nom: r.nom, prenom: r.prenom }))
+      .sort((a, b) => String(a.numero).localeCompare(String(b.numero), 'fr', { numeric: true }));
+  }
+  return response;
+}
+
 function doPost(e) {
   try {
     const body = JSON.parse((e.postData && e.postData.contents) || '{}');
     const pin = String(body.pin || '');
-    const code = String(body.code || '').trim();
+    const action = String(body.action || 'checkin');
 
     const expectedPin = getStaffPin_();
     if (expectedPin && pin !== expectedPin) {
       return jsonOut_({ status: 'unauthorized', message: 'Code bénévole invalide.' });
     }
+
+    if (action === 'stats') return jsonOut_(statsResponse_(false));
+    if (action === 'remaining') return jsonOut_(statsResponse_(true));
+
+    const code = String(body.code || '').trim();
     if (!code) {
       return jsonOut_({ status: 'error', message: 'QR code vide.' });
     }
@@ -112,7 +157,8 @@ function doPost(e) {
         });
       }
 
-      sheet.getRange(row, COL.ARRIVE).setValue(ARRIVE_VALUE);
+      // Colonnes Arrivé et Heure d'arrivée sont contiguës : une seule écriture, dans le même verrou.
+      sheet.getRange(row, COL.ARRIVE, 1, 2).setValues([[ARRIVE_VALUE, new Date()]]);
       return jsonOut_({ status: 'success', message: 'Arrivée enregistrée.', runner });
     } finally {
       lock.releaseLock();
@@ -127,14 +173,14 @@ function doGet() {
 }
 
 /**
- * Utilitaire optionnel : vide toute la colonne Arrivé (par ex. après un test).
+ * Utilitaire optionnel : vide les colonnes Arrivé et Heure d'arrivée (par ex. après un test).
  * À exécuter manuellement depuis l'éditeur, jamais depuis le web app.
  */
 function reinitialiserArrivees() {
   const sheet = getSheet_();
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return;
-  const range = sheet.getRange(2, COL.ARRIVE, lastRow - 1, 1);
-  const values = range.getValues().map(() => ['']);
+  const range = sheet.getRange(2, COL.ARRIVE, lastRow - 1, 2);
+  const values = range.getValues().map(() => ['', '']);
   range.setValues(values);
 }
