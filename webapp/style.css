@@ -356,3 +356,15 @@ button.ghost {
   justify-content: center;
   color: var(--muted);
 }
+
+.warning-banner {
+  width: 100%;
+  max-width: 420px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--error);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
+}

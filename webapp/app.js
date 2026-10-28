@@ -3,11 +3,13 @@ const SESSION_DURATION_MS = 24 * 60 * 60 * 1000; // 24h
 const REQUEST_TIMEOUT_MS = 8000;
 const LIST_TIMEOUT_MS = 15000;
 let sessionCount = 0;
+let dnsCount = 0;
 let scanner = null;
 let stopping = Promise.resolve();
 let processing = false;
 let lastCode = null;
 let lastSource = null;
+let lastMode = 'checkin';
 let torchOn = false;
 let torchFeature = null;
 let currentView = null;
@@ -20,6 +22,8 @@ const remainingScreen = document.getElementById('remaining-screen');
 const pinInput = document.getElementById('pin-input');
 const countEl = document.getElementById('count');
 const torchBtn = document.getElementById('torch-btn');
+const dnsWarning = document.getElementById('dns-warning');
+const statsLabel = document.getElementById('stats-label');
 const manualInput = document.getElementById('manual-input');
 const manualSubmit = document.getElementById('manual-submit');
 
@@ -101,17 +105,36 @@ function enterApp() {
   showView('scan');
 }
 
+function isScannerView(name) {
+  return name === 'scan' || name === 'dns';
+}
+
+function updateSessionCounter() {
+  if (currentView === 'dns') {
+    statsLabel.textContent = 'Non-partants enregistrés cette session :';
+    countEl.textContent = dnsCount;
+  } else {
+    statsLabel.textContent = 'Dossards enregistrés cette session :';
+    countEl.textContent = sessionCount;
+  }
+}
+
 function showView(name) {
   closeMenu();
   if (name === currentView) return;
+  const wasScanner = isScannerView(currentView);
   currentView = name;
-  scanScreen.hidden = name !== 'scan';
+  scanScreen.hidden = !isScannerView(name);
   remainingScreen.hidden = name !== 'remaining';
+  dnsWarning.hidden = name !== 'dns';
   menuItems.forEach(item => item.classList.toggle('active', item.dataset.view === name));
+  manualInput.value = '';
+  updateSessionCounter();
 
-  if (name === 'scan') {
+  if (isScannerView(name)) {
     remainingRequestId++;
-    startScanner();
+    // Passer d'émargement à non-partant garde la même caméra : on ne la relance pas.
+    if (!wasScanner) startScanner();
   } else {
     stopScanner();
     resetRemainingView();
@@ -123,7 +146,7 @@ function showView(name) {
 
 function startScanner() {
   stopping.then(() => {
-    if (currentView !== 'scan') return;
+    if (!isScannerView(currentView)) return;
     const instance = new Html5Qrcode('reader');
     scanner = instance;
     instance
@@ -218,6 +241,7 @@ async function submitCode(code, source) {
   processing = true;
   lastCode = code;
   lastSource = source;
+  lastMode = currentView === 'dns' ? 'dns' : 'checkin';
   closeMenu();
 
   if (scanner) {
@@ -232,7 +256,7 @@ async function submitCode(code, source) {
 
 async function checkIn(code) {
   try {
-    const data = await callApi({ code: code }, REQUEST_TIMEOUT_MS, true);
+    const data = await callApi({ code: code, action: lastMode }, REQUEST_TIMEOUT_MS, true);
     handleResult(data);
   } catch (err) {
     showModalError('Erreur réseau. Vérifie la connexion et réessaie.');
@@ -242,18 +266,30 @@ async function checkIn(code) {
 function handleResult(data) {
   switch (data.status) {
     case 'success':
-      sessionCount++;
-      countEl.textContent = sessionCount;
+      if (lastMode === 'dns') dnsCount++;
+      else sessionCount++;
+      updateSessionCounter();
       showModalDone(
         'success',
-        '✅ Dossard #' + data.runner.numero + ' — ' + data.runner.nom + ' enregistré(e) arrivé(e).'
+        lastMode === 'dns'
+          ? '✅ Dossard #' + data.runner.numero + ' — ' + data.runner.nom + ' enregistré(e) non partant(e) (DNS).'
+          : '✅ Dossard #' + data.runner.numero + ' — ' + data.runner.nom + ' enregistré(e) arrivé(e).'
       );
       break;
     case 'already':
       showModalDone(
         'warning',
-        '⚠️ Déjà enregistrée comme arrivée (Dossard #' +
+        (lastMode === 'dns' ? '⚠️ Déjà enregistré(e) comme non partant(e) (Dossard #' : '⚠️ Déjà enregistrée comme arrivée (Dossard #') +
           data.runner.numero + ' — ' + data.runner.nom + ').'
+      );
+      break;
+    case 'conflict':
+      showModalDone(
+        'warning',
+        '⚠️ Dossard #' + data.runner.numero + ' — ' + data.runner.nom +
+          (data.current === 'dns'
+            ? ' est déclaré(e) non partant(e) (DNS) : arrivée non enregistrée.'
+            : ' est déjà enregistré(e) comme arrivé(e) : impossible de le/la déclarer non partant(e).')
       );
       break;
     case 'not_found':
@@ -357,6 +393,7 @@ function renderStats(data) {
   remainingLabel.textContent = (data.remaining > 1 ? 'coureurs' : 'coureur') + ' toujours en course';
   remainingDetail.textContent =
     data.arrived + (data.arrived > 1 ? ' arrivés' : ' arrivé') +
+    (data.dns > 0 ? ' · ' + data.dns + (data.dns > 1 ? ' non partants' : ' non partant') : '') +
     ' sur ' + data.total + (data.total > 1 ? ' inscrits' : ' inscrit');
   remainingError.hidden = true;
 }
@@ -463,6 +500,7 @@ function logout() {
   currentView = null;
   closeMenu();
   menuBtn.hidden = true;
+  dnsWarning.hidden = true;
   scanScreen.hidden = true;
   remainingScreen.hidden = true;
   pinScreen.hidden = false;

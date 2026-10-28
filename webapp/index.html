@@ -23,6 +23,7 @@
     <nav id="menu" hidden>
       <button class="menu-item active" data-view="scan">Émargement</button>
       <button class="menu-item" data-view="remaining">Coureurs toujours en course</button>
+      <button class="menu-item" data-view="dns">Non partant</button>
     </nav>
   </header>
 
@@ -34,6 +35,7 @@
   </section>
 
   <section id="scan-screen" hidden>
+    <div id="dns-warning" class="warning-banner" role="alert" hidden>⚠️ Attention : flash pour les non-partants</div>
     <div id="reader"></div>
     <button id="torch-btn" class="ghost" hidden>🔦 Activer le flash</button>
 
@@ -45,7 +47,7 @@
       </div>
     </div>
 
-    <p id="stats">Dossards enregistrés cette session : <span id="count">0</span></p>
+    <p id="stats"><span id="stats-label">Dossards enregistrés cette session :</span> <span id="count">0</span></p>
   </section>
 
   <section id="remaining-screen" hidden>

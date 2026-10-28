@@ -14,17 +14,20 @@
  *
  * Actions acceptées par doPost (champ "action", "checkin" par défaut) :
  * - checkin   : enregistre l'arrivée (Arrivé.e ? = oui + horodatage)
+ * - dns       : déclare le coureur non partant (Arrivé.e ? = DNS + horodatage)
  * - stats     : nombre de coureurs inscrits / arrivés / encore en course
  * - remaining : idem + liste des coureurs encore en course
  *
  * Un coureur = une ligne dont la colonne Nom est renseignée (les numéros pas encore attribués
- * ne comptent pas).
+ * ne comptent pas). Un coureur DNS (non partant) n'est plus compté parmi ceux "toujours en course".
+ * On n'écrase jamais un "oui" par un "DNS" ni l'inverse : le script répond "conflict".
  */
 
 const SHEET_NAME = 'Feuille 1';
 const COL = { NUMERO: 1, NOM: 2, TEL: 3, URL: 4, ARRIVE: 5, HEURE: 6, QRCODE: 7 };
 const LAST_COL = Math.max(COL.NUMERO, COL.NOM, COL.URL, COL.ARRIVE, COL.HEURE, COL.QRCODE);
 const ARRIVE_VALUE = 'oui';
+const DNS_VALUE = 'DNS';
 const INDEX_CACHE_KEY = 'indexes_v2';
 const CACHE_TTL_SECONDS = 21600; // 6h
 
@@ -135,17 +138,20 @@ function readRunners_() {
     .map(r => ({
       numero: r[COL.NUMERO - 1],
       nom: r[COL.NOM - 1],
-      arrive: String(r[COL.ARRIVE - 1] || '').trim().toLowerCase() === ARRIVE_VALUE,
+      state: String(r[COL.ARRIVE - 1] || '').trim().toLowerCase(),
     }));
 }
 
 function statsResponse_(withList) {
   const runners = readRunners_();
-  const remaining = runners.filter(r => !r.arrive);
+  const arrived = runners.filter(r => r.state === ARRIVE_VALUE).length;
+  const dns = runners.filter(r => r.state === DNS_VALUE.toLowerCase()).length;
+  const remaining = runners.filter(r => r.state !== ARRIVE_VALUE && r.state !== DNS_VALUE.toLowerCase());
   const response = {
     status: 'ok',
     total: runners.length,
-    arrived: runners.length - remaining.length,
+    arrived: arrived,
+    dns: dns,
     remaining: remaining.length,
   };
   if (withList) {
@@ -169,6 +175,11 @@ function doPost(e) {
 
     if (action === 'stats') return jsonOut_(statsResponse_(false));
     if (action === 'remaining') return jsonOut_(statsResponse_(true));
+    if (action !== 'checkin' && action !== 'dns') {
+      return jsonOut_({ status: 'error', message: 'Action inconnue.' });
+    }
+    const isDns = action === 'dns';
+    const targetState = isDns ? DNS_VALUE.toLowerCase() : ARRIVE_VALUE;
 
     const code = String(body.code || '').trim();
     if (!code) {
@@ -202,10 +213,22 @@ function doPost(e) {
       };
       const arriveCell = String(data[COL.ARRIVE - 1] == null ? '' : data[COL.ARRIVE - 1]).trim().toLowerCase();
 
-      if (arriveCell === ARRIVE_VALUE) {
+      if (arriveCell === targetState) {
         return jsonOut_({
           status: 'already',
-          message: 'Cette personne est déjà enregistrée comme arrivée.',
+          message: isDns
+            ? 'Cette personne est déjà enregistrée comme non partante.'
+            : 'Cette personne est déjà enregistrée comme arrivée.',
+          runner,
+        });
+      }
+
+      // L'autre état (arrivé <-> non partant) n'est jamais écrasé : c'est forcément une erreur de scan.
+      if (arriveCell === ARRIVE_VALUE || arriveCell === DNS_VALUE.toLowerCase()) {
+        return jsonOut_({
+          status: 'conflict',
+          message: 'Ce coureur est déjà enregistré avec un autre statut.',
+          current: arriveCell,
           runner,
         });
       }
@@ -221,13 +244,18 @@ function doPost(e) {
       }
 
       const now = new Date();
+      const written = isDns ? DNS_VALUE : ARRIVE_VALUE;
       if (COL.HEURE === COL.ARRIVE + 1) {
-        sheet.getRange(row, COL.ARRIVE, 1, 2).setValues([[ARRIVE_VALUE, now]]);
+        sheet.getRange(row, COL.ARRIVE, 1, 2).setValues([[written, now]]);
       } else {
-        sheet.getRange(row, COL.ARRIVE).setValue(ARRIVE_VALUE);
+        sheet.getRange(row, COL.ARRIVE).setValue(written);
         sheet.getRange(row, COL.HEURE).setValue(now);
       }
-      return jsonOut_({ status: 'success', message: 'Arrivée enregistrée.', runner });
+      return jsonOut_({
+        status: 'success',
+        message: isDns ? 'Non-partant enregistré.' : 'Arrivée enregistrée.',
+        runner,
+      });
     } finally {
       lock.releaseLock();
     }
@@ -241,9 +269,9 @@ function doGet() {
 }
 
 /**
- * Utilitaire optionnel : vide les colonnes Arrivé.e ? et Heure émargement (par ex. après un test).
+ * Utilitaire optionnel : vide les colonnes Arrivé.e ? et Heure émargement (arrivées ET non-partants), par ex. après un test.
  * À exécuter manuellement depuis l'éditeur, jamais depuis le web app.
- * Refuse de rien effacer si l'une de ces colonnes contient autre chose que oui/non/une date.
+ * Refuse de rien effacer si l'une de ces colonnes contient autre chose que oui/non/DNS/une date.
  */
 function reinitialiserArrivees() {
   const sheet = getSheet_();
@@ -255,10 +283,10 @@ function reinitialiserArrivees() {
   const arriveValues = arrive.getValues();
   const heureValues = heure.getValues();
 
-  const arriveOk = arriveValues.every(r => ['', 'oui', 'non'].includes(String(r[0]).trim().toLowerCase()));
+  const arriveOk = arriveValues.every(r => ['', 'oui', 'non', 'dns'].includes(String(r[0]).trim().toLowerCase()));
   const heureOk = heureValues.every(r => r[0] === '' || isDate_(r[0]));
   if (!arriveOk || !heureOk) {
-    throw new Error('Abandon : les colonnes Arrivé.e ? / Heure émargement contiennent autre chose que oui/non/une date. Vérifie COL.');
+    throw new Error('Abandon : les colonnes Arrivé.e ? / Heure émargement contiennent autre chose que oui/non/DNS/une date. Vérifie COL.');
   }
 
   arrive.setValues(arriveValues.map(() => ['']));
