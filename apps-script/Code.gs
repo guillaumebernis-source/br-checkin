@@ -3,7 +3,10 @@
  * À coller dans Extensions > Apps Script du Google Sheet "CSV test BR24".
  *
  * Colonnes attendues (dans cet ordre) :
- * A: Numéro | B: Nom | C: Prénom | D: Caractéristiques | E: Url | F: Arrivé | G: Heure d'arrivée
+ * A: Numéro | B: Nom | C: Equipe | D: Numéro tel. | E: Url (colonne masquée) | F: Arrivée | G: Heure émargement
+ *
+ * Le script travaille par POSITION de colonne (pas par nom d'en-tête) : renommer un en-tête
+ * est sans effet, mais insérer/déplacer une colonne impose de mettre à jour COL ci-dessous.
  *
  * Le pointage accepte deux types de code :
  * - le contenu du QR imprimé sur le dossard (= colonne Url)
@@ -17,7 +20,7 @@
  */
 
 const SHEET_NAME = 'Feuille 1';
-const COL = { NUMERO: 1, NOM: 2, PRENOM: 3, CARACTERISTIQUES: 4, URL: 5, ARRIVE: 6, HEURE: 7 };
+const COL = { NUMERO: 1, NOM: 2, EQUIPE: 3, TEL: 4, URL: 5, ARRIVE: 6, HEURE: 7 };
 const ARRIVE_VALUE = 'oui';
 const URL_CACHE_KEY = 'url_index_v1';
 const NUMERO_CACHE_KEY = 'numero_index_v1';
@@ -78,7 +81,7 @@ function jsonOut_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
-/** Lit tous les coureurs (lignes avec au moins un numéro ou un nom) en un seul appel. */
+/** Lit tous les coureurs en un seul appel. Un coureur = une ligne avec un nom (les numéros sans nom sont ignorés). */
 function readRunners_() {
   const sheet = getSheet_();
   const lastRow = sheet.getLastRow();
@@ -87,11 +90,11 @@ function readRunners_() {
   return sheet
     .getRange(2, 1, lastRow - 1, COL.ARRIVE)
     .getValues()
-    .filter(r => String(r[COL.NUMERO - 1]).trim() !== '' || String(r[COL.NOM - 1]).trim() !== '')
+    .filter(r => String(r[COL.NOM - 1]).trim() !== '')
     .map(r => ({
       numero: r[COL.NUMERO - 1],
       nom: r[COL.NOM - 1],
-      prenom: r[COL.PRENOM - 1],
+      equipe: r[COL.EQUIPE - 1],
       arrive: String(r[COL.ARRIVE - 1] || '').trim().toLowerCase() === ARRIVE_VALUE,
     }));
 }
@@ -107,7 +110,7 @@ function statsResponse_(withList) {
   };
   if (withList) {
     response.runners = remaining
-      .map(r => ({ numero: r.numero, nom: r.nom, prenom: r.prenom }))
+      .map(r => ({ numero: r.numero, nom: r.nom, equipe: r.equipe }))
       .sort((a, b) => String(a.numero).localeCompare(String(b.numero), 'fr', { numeric: true }));
   }
   return response;
@@ -145,7 +148,7 @@ function doPost(e) {
       const runner = {
         numero: data[COL.NUMERO - 1],
         nom: data[COL.NOM - 1],
-        prenom: data[COL.PRENOM - 1],
+        equipe: data[COL.EQUIPE - 1],
       };
       const arrive = String(data[COL.ARRIVE - 1] || '').trim().toLowerCase();
 
