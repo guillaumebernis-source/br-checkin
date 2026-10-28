@@ -239,11 +239,6 @@ async function checkIn(code) {
   }
 }
 
-function runnerLabel(r) {
-  const equipe = String(r.equipe || '').trim();
-  return String(r.nom || '').trim() + (equipe ? ' (' + equipe + ')' : '');
-}
-
 function handleResult(data) {
   switch (data.status) {
     case 'success':
@@ -251,14 +246,14 @@ function handleResult(data) {
       countEl.textContent = sessionCount;
       showModalDone(
         'success',
-        '✅ Dossard #' + data.runner.numero + ' — ' + runnerLabel(data.runner) + ' enregistré(e) arrivé(e).'
+        '✅ Dossard #' + data.runner.numero + ' — ' + data.runner.nom + ' enregistré(e) arrivé(e).'
       );
       break;
     case 'already':
       showModalDone(
         'warning',
         '⚠️ Déjà enregistrée comme arrivée (Dossard #' +
-          data.runner.numero + ' — ' + runnerLabel(data.runner) + ').'
+          data.runner.numero + ' — ' + data.runner.nom + ').'
       );
       break;
     case 'not_found':
@@ -381,7 +376,7 @@ function renderList(runners) {
     num.className = 'num';
     num.textContent = '#' + r.numero;
     const name = document.createElement('span');
-    name.textContent = runnerLabel(r);
+    name.textContent = r.nom;
     li.appendChild(num);
     li.appendChild(name);
     runnerList.appendChild(li);

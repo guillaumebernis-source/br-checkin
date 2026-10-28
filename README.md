@@ -1,6 +1,6 @@
 # Blood Runners — Pointage des arrivées par QR code
 
-Application de pointage pour la course caritative d'Halloween. Un bénévole scanne le QR code du dossard d'un coureur avec son téléphone ; le statut "Arrivée" est mis à jour en direct dans le Google Sheet.
+Application de pointage pour la course caritative d'Halloween. Un bénévole scanne le QR code du dossard d'un coureur avec son téléphone ; le statut « Arrivé.e ? » est mis à jour en direct dans le Google Sheet.
 
 ## Architecture
 
@@ -8,15 +8,18 @@ Application de pointage pour la course caritative d'Halloween. Un bénévole sca
 - **Backend** : un Google Apps Script *lié au Sheet* ([apps-script/Code.gs](apps-script/Code.gs)), déployé comme "Web App". Il tourne avec ton compte Google, a un accès natif au Sheet (pas de clé API à gérer) et gère les écritures concurrentes avec un verrou.
 - **Frontend** : une page web mobile statique ([webapp/](webapp)) qui scanne les QR codes via la caméra et appelle le Web App. Hébergée gratuitement sur GitHub Pages (ou Netlify/Vercel).
 - **Sécurité** :
-  - Les QR codes déjà imprimés sur les dossards encodent la colonne `Url` — le pointage se fait donc directement sur cette colonne, sans étape de préparation supplémentaire.
+  - Les QR codes déjà imprimés sur les dossards encodent l'`Url` (colonnes `D` et `G`) — le pointage se fait donc directement sur cette colonne, sans étape de préparation supplémentaire.
   - Un **code bénévole** (PIN) protège l'accès à l'API de pointage : sans lui, personne ne peut marquer un dossard "arrivé" même en connaissant l'URL de l'app. C'est la protection principale, puisque l'`Url` elle-même suit un motif prévisible (nom+prénom) et n'est donc pas un secret.
   - Tout transite en HTTPS (Apps Script + GitHub Pages sont HTTPS par défaut).
-  - Le double-scan est géré côté serveur : si le dossard est déjà marqué "arrivé" (`Arrivée` = `oui`), l'app affiche un message dédié sans écraser de donnée.
+  - Le double-scan est géré côté serveur : si le dossard est déjà marqué "arrivé" (`Arrivé.e ?` = `oui`), l'app affiche un message dédié sans écraser de donnée.
   - Le repo GitHub est public (nécessaire pour héberger gratuitement sur Pages), mais **ne contient aucune donnée personnelle ni secret** (ni ID du Sheet, ni PIN, ni liste de coureurs). Pour limiter la découverte de l'app elle-même : nom de repo non descriptif (`br-checkin`), `robots.txt` + balise `noindex` pour bloquer l'indexation par les moteurs de recherche. C'est de l'obscurité, pas une vraie protection — la vraie barrière reste le **code bénévole**.
 
 ## Étape 1 — Installer le script (backend)
 
-0. Le script lit la feuille `Feuille 1` **par position de colonne** (le nom des en-têtes n'a aucune importance) : `A` Numéro, `B` Nom, `C` Equipe, `D` Numéro tel., `E` Url (colonne masquée, contenu des QR imprimés), `F` Arrivée, `G` Heure émargement. Si tu insères ou déplaces une colonne, mets à jour `COL` en haut de [apps-script/Code.gs](apps-script/Code.gs). Dans la colonne `G` (« Heure émargement »), le script écrit la date et l'heure exactes du scan, en même temps que `oui`. Pense à vérifier le fuseau horaire du Sheet (**Fichier > Paramètres**, onglet Général) : l'heure affichée suit ce réglage.
+0. Le script lit la feuille `Feuille 1` **par position de colonne** (le nom des en-têtes n'a aucune importance) : `A` Numéro, `B` Nom, `C` Tel, `D` Url, `E` Arrivé.e ?, `F` Heure émargement, `G` Qrcode. Si tu insères ou déplaces une colonne, mets à jour `COL` en haut de [apps-script/Code.gs](apps-script/Code.gs). Le script écrit `oui` en `E` et la date et l'heure exactes du scan en `F` (vraie valeur date-heure, triable). Pense à vérifier le fuseau horaire du Sheet (**Fichier > Paramètres**, onglet Général) : l'heure affichée suit ce réglage.
+   - **Qrcode (`G`)** contient le lien de l'image du QR (`quickchart.io/qr?text=…`). La valeur lue par le scanner est son paramètre `text`, identique à l'`Url` (`D`) : le script retrouve le coureur avec l'une ou l'autre.
+   - Un coureur compte dans « toujours en course » **uniquement si son `Nom` est renseigné** : les numéros pas encore attribués sont ignorés.
+   - **Garde-fous** : le script refuse d'écrire (message « Colonnes du Sheet incohérentes ») si `E` ou `F` contiennent déjà autre chose que `oui`/`non`/une date, par exemple après un déplacement de colonnes. Il vérifie aussi que la ligne trouvée correspond bien au code scanné, même après un tri des lignes ; la fonction `viderCache` (à lancer à la main) force une relecture complète.
 1. Dans le Sheet : **Extensions > Apps Script**.
 2. Supprime le contenu par défaut de `Code.gs` et colle le contenu de [apps-script/Code.gs](apps-script/Code.gs).
 3. Choisis un **code bénévole** (ex. `HALLOWEEN26`, au moins 6 caractères pour limiter le brute-force). Dans l'éditeur Apps Script : icône ⚙️ **Paramètres du projet > Propriétés du script > Ajouter une propriété** :
@@ -29,7 +32,7 @@ Application de pointage pour la course caritative d'Halloween. Un bénévole sca
    - Clique sur **Déployer**, autorise l'accès.
    - Copie l'**URL du Web App** (`https://script.google.com/macros/s/AKfycb.../exec`).
 
-> Pour re-tester le jour J sans polluer les vraies données : la fonction `reinitialiserArrivees` (à exécuter manuellement dans l'éditeur, jamais depuis l'app) vide les colonnes `Arrivée` et `Heure émargement`.
+> Pour re-tester le jour J sans polluer les vraies données : la fonction `reinitialiserArrivees` (à exécuter manuellement dans l'éditeur, jamais depuis l'app) vide les colonnes `Arrivé.e ?` et `Heure émargement` (elle refuse de s'exécuter si ces colonnes contiennent autre chose que oui/non/une date).
 
 **Mettre à jour le script sans changer l'URL du Web App** : colle le nouveau `Code.gs`, puis **Déployer > Gérer les déploiements > icône crayon sur le déploiement existant > Version : Nouvelle version > Déployer**. L'URL reste la même, rien à changer dans `config.js`. (« Nouveau déploiement » génère au contraire une nouvelle URL à reporter dans `config.js`.)
 
