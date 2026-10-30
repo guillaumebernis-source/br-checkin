@@ -24,6 +24,9 @@
  * On n'écrase jamais un "oui" par un "DNS" ni l'inverse : le script répond "conflict".
  */
 
+// Visible en ouvrant l'URL du Web App dans un navigateur : permet de savoir quelle version est réellement publiée.
+const SCRIPT_VERSION = '2026-10-30-roster';
+
 const SHEET_NAME = 'Feuille 1';
 const COL = { NUMERO: 1, NOM: 2, TEL: 3, URL: 4, ARRIVE: 5, HEURE: 6, QRCODE: 7 };
 const LAST_COL = Math.max(COL.NUMERO, COL.NOM, COL.URL, COL.ARRIVE, COL.HEURE, COL.QRCODE);
@@ -285,7 +288,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return jsonOut_({ status: 'ok', message: 'Blood Runners check-in API' });
+  return jsonOut_({ status: 'ok', message: 'Blood Runners check-in API', version: SCRIPT_VERSION });
 }
 
 /**
