@@ -2,6 +2,7 @@ const PIN_STORAGE_KEY = 'br_staff_pin';
 const SESSION_DURATION_MS = 24 * 60 * 60 * 1000; // 24h
 const REQUEST_TIMEOUT_MS = 8000;
 const LIST_TIMEOUT_MS = 15000;
+const MIN_SEARCH_LENGTH = 3;
 const SESSION_REFUSED_MSG = 'Code refusé ou expiré. Saisis-le à nouveau.';
 let sessionCount = 0;
 let dnsCount = 0;
@@ -16,6 +17,10 @@ let torchFeature = null;
 let currentView = null;
 let listVisible = false;
 let remainingRequestId = 0;
+let departRequestId = 0;
+let roster = [];
+let rosterLoaded = false;
+let departSelected = null;
 
 const pinScreen = document.getElementById('pin-screen');
 const scanScreen = document.getElementById('scan-screen');
@@ -42,6 +47,15 @@ const remainingError = document.getElementById('remaining-error');
 const listBtn = document.getElementById('list-btn');
 const refreshBtn = document.getElementById('refresh-btn');
 const runnerList = document.getElementById('runner-list');
+
+const departScreen = document.getElementById('depart-screen');
+const departSearch = document.getElementById('depart-search');
+const departStatus = document.getElementById('depart-status');
+const departCard = document.getElementById('depart-card');
+const departBib = document.getElementById('depart-bib');
+const departName = document.getElementById('depart-name');
+const departResults = document.getElementById('depart-results');
+const departRetry = document.getElementById('depart-retry');
 
 const modal = document.getElementById('result-modal');
 const modalContent = document.getElementById('result-modal-content');
@@ -130,19 +144,28 @@ function showView(name) {
   currentView = name;
   scanScreen.hidden = !isScannerView(name);
   remainingScreen.hidden = name !== 'remaining';
+  departScreen.hidden = name !== 'depart';
   dnsWarning.hidden = name !== 'dns';
   menuItems.forEach(item => item.classList.toggle('active', item.dataset.view === name));
   manualInput.value = '';
   updateSessionCounter();
 
+  // Toute requête encore en cours pour une vue quittée devient caduque.
+  remainingRequestId++;
+  departRequestId++;
+
   if (isScannerView(name)) {
-    remainingRequestId++;
-    // Passer d'émargement à non-partant garde la même caméra : on ne la relance pas.
+    // Passer d'émargement arrivée à non-partant garde la même caméra : on ne la relance pas.
     if (!wasScanner) startScanner();
   } else {
     stopScanner();
-    resetRemainingView();
-    loadStats();
+    if (name === 'remaining') {
+      resetRemainingView();
+      loadStats();
+    } else if (name === 'depart') {
+      resetDepartView();
+      loadRoster();
+    }
   }
 }
 
@@ -515,7 +538,7 @@ function showRemainingError() {
   remainingError.hidden = false;
 }
 
-async function fetchRemaining(action) {
+async function fetchData(action) {
   const data = await callApi({ action: action }, LIST_TIMEOUT_MS, true);
   if (data.status === 'unauthorized') {
     logout(SESSION_REFUSED_MSG);
@@ -529,7 +552,7 @@ async function loadStats() {
   const id = ++remainingRequestId;
   refreshBtn.disabled = true;
   try {
-    const data = await fetchRemaining('stats');
+    const data = await fetchData('stats');
     if (!data || id !== remainingRequestId) return;
     renderStats(data);
   } catch (err) {
@@ -545,7 +568,7 @@ async function loadList() {
   listBtn.textContent = 'Chargement…';
   refreshBtn.disabled = true;
   try {
-    const data = await fetchRemaining('remaining');
+    const data = await fetchData('remaining');
     if (!data || id !== remainingRequestId) return;
     renderStats(data);
     renderList(data.runners);
@@ -579,6 +602,112 @@ function refreshRemaining() {
   else loadStats();
 }
 
+// ---------- Émargement départ : recherche d'un coureur ----------
+
+// Minuscules, sans accents, tirets/apostrophes/points comptés comme des espaces, espaces simplifiés.
+function normalizeText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[-'’_.]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function setDepartStatus(message, isError) {
+  departStatus.textContent = message;
+  departStatus.classList.toggle('error', !!isError);
+}
+
+function resetDepartView() {
+  roster = [];
+  rosterLoaded = false;
+  departSelected = null;
+  departSearch.value = '';
+  departSearch.disabled = true;
+  departSearch.placeholder = 'Chargement de la liste…';
+  departRetry.hidden = true;
+  departCard.hidden = true;
+  departResults.hidden = true;
+  departResults.textContent = '';
+  setDepartStatus('', false);
+}
+
+async function loadRoster() {
+  const id = ++departRequestId;
+  departRetry.hidden = true;
+  setDepartStatus('Chargement de la liste…', false);
+  try {
+    const data = await fetchData('roster');
+    if (!data || id !== departRequestId) return;
+    roster = data.runners.map(r => ({ numero: r.numero, nom: r.nom, key: normalizeText(r.nom) }));
+    rosterLoaded = true;
+    departSearch.disabled = false;
+    departSearch.placeholder = 'Nom ou prénom (' + MIN_SEARCH_LENGTH + ' lettres minimum)';
+    setDepartStatus('', false);
+    departSearch.focus();
+  } catch (err) {
+    if (id !== departRequestId) return;
+    setDepartStatus('Impossible de charger la liste. Vérifie la connexion puis réessaie.', true);
+    departRetry.hidden = false;
+  }
+}
+
+function showBib(runner) {
+  departBib.textContent = runner.numero;
+  departName.textContent = runner.nom;
+  departCard.hidden = false;
+}
+
+function renderDepart() {
+  if (!rosterLoaded) return;
+  const query = normalizeText(departSearch.value);
+
+  departCard.hidden = true;
+  departResults.hidden = true;
+  departResults.textContent = '';
+
+  // Moins de 3 lettres : il ne se passe rien.
+  if (query.length < MIN_SEARCH_LENGTH) {
+    setDepartStatus('', false);
+    return;
+  }
+
+  const matches = roster.filter(r => r.key.includes(query));
+  if (matches.length === 0) {
+    setDepartStatus('Aucun coureur trouvé', false);
+    return;
+  }
+  setDepartStatus(matches.length === 1 ? '1 résultat' : matches.length + ' résultats', false);
+
+  // Un seul résultat : on donne le dossard tout de suite. Sinon, après un clic dans la liste.
+  const selected = matches.length === 1 ? matches[0] : matches.includes(departSelected) ? departSelected : null;
+  if (selected) showBib(selected);
+  if (matches.length === 1) return;
+
+  matches.forEach(r => {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = r.nom;
+    if (r === selected) btn.classList.add('selected');
+    btn.addEventListener('click', () => {
+      departSelected = r;
+      departSearch.blur();
+      renderDepart();
+    });
+    li.appendChild(btn);
+    departResults.appendChild(li);
+  });
+  departResults.hidden = false;
+}
+
+function onDepartInput() {
+  departSelected = null;
+  renderDepart();
+}
+
 // ---------- Session ----------
 
 function showPinError(message) {
@@ -601,12 +730,14 @@ function logout(message) {
   localStorage.removeItem(PIN_STORAGE_KEY);
   stopScanner();
   remainingRequestId++;
+  departRequestId++;
   currentView = null;
   closeMenu();
   menuBtn.hidden = true;
   dnsWarning.hidden = true;
   scanScreen.hidden = true;
   remainingScreen.hidden = true;
+  departScreen.hidden = true;
   pinScreen.hidden = false;
   pinInput.value = '';
   setPinVisible(false);
@@ -668,6 +799,12 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeMenu();
 });
 
+departSearch.addEventListener('input', onDepartInput);
+departSearch.addEventListener('focus', () => departSearch.select());
+departSearch.addEventListener('keydown', e => {
+  if (e.key === 'Enter') departSearch.blur();
+});
+departRetry.addEventListener('click', loadRoster);
 listBtn.addEventListener('click', toggleList);
 refreshBtn.addEventListener('click', refreshRemaining);
 torchBtn.addEventListener('click', toggleTorch);

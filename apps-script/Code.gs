@@ -17,6 +17,7 @@
  * - dns       : déclare le coureur non partant (Arrivé.e ? = DNS + horodatage)
  * - stats     : nombre de coureurs inscrits / arrivés / encore en course
  * - remaining : idem + liste des coureurs encore en course (numéro, nom, téléphone)
+ * - roster    : liste de tous les coureurs nommés (numéro, nom), pour la recherche de l'émargement départ
  *
  * Un coureur = une ligne dont la colonne Nom est renseignée (les numéros pas encore attribués
  * ne comptent pas). Un coureur DNS (non partant) n'est plus compté parmi ceux "toujours en course".
@@ -172,6 +173,14 @@ function statsResponse_(withList) {
   return response;
 }
 
+/** Tous les coureurs nommés, numéro + nom seulement (pas de téléphone), arrivés ou non. */
+function rosterResponse_() {
+  const runners = readRunners_()
+    .map(r => ({ numero: r.numero, nom: String(r.nom).trim() }))
+    .sort((a, b) => String(a.numero).localeCompare(String(b.numero), 'fr', { numeric: true }));
+  return { status: 'ok', total: runners.length, runners: runners };
+}
+
 function doPost(e) {
   try {
     const body = JSON.parse((e.postData && e.postData.contents) || '{}');
@@ -185,6 +194,7 @@ function doPost(e) {
 
     if (action === 'stats') return jsonOut_(statsResponse_(false));
     if (action === 'remaining') return jsonOut_(statsResponse_(true));
+    if (action === 'roster') return jsonOut_(rosterResponse_());
     if (action !== 'checkin' && action !== 'dns') {
       return jsonOut_({ status: 'error', message: 'Action inconnue.' });
     }
