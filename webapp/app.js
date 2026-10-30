@@ -55,6 +55,7 @@ const departCard = document.getElementById('depart-card');
 const departBib = document.getElementById('depart-bib');
 const departName = document.getElementById('depart-name');
 const departResults = document.getElementById('depart-results');
+const departReset = document.getElementById('depart-reset');
 const departRetry = document.getElementById('depart-retry');
 
 const modal = document.getElementById('result-modal');
@@ -627,6 +628,7 @@ function resetDepartView() {
   departSearch.value = '';
   departSearch.disabled = true;
   departSearch.placeholder = 'Chargement de la liste…';
+  departReset.disabled = true;
   departRetry.hidden = true;
   departCard.hidden = true;
   departResults.hidden = true;
@@ -644,6 +646,7 @@ async function loadRoster() {
     roster = data.runners.map(r => ({ numero: r.numero, nom: r.nom, key: normalizeText(r.nom) }));
     rosterLoaded = true;
     departSearch.disabled = false;
+    departReset.disabled = false;
     departSearch.placeholder = 'Nom ou prénom (' + MIN_SEARCH_LENGTH + ' lettres minimum)';
     setDepartStatus('', false);
     departSearch.focus();
@@ -701,6 +704,14 @@ function renderDepart() {
     departResults.appendChild(li);
   });
   departResults.hidden = false;
+}
+
+// Vide la recherche (et donc la fiche / la liste) et rouvre le clavier pour enchaîner le coureur suivant.
+function resetDepartSearch() {
+  departSearch.value = '';
+  departSelected = null;
+  renderDepart();
+  departSearch.focus();
 }
 
 function onDepartInput() {
@@ -805,6 +816,7 @@ departSearch.addEventListener('keydown', e => {
   if (e.key === 'Enter') departSearch.blur();
 });
 departRetry.addEventListener('click', loadRoster);
+departReset.addEventListener('click', resetDepartSearch);
 listBtn.addEventListener('click', toggleList);
 refreshBtn.addEventListener('click', refreshRemaining);
 torchBtn.addEventListener('click', toggleTorch);
